@@ -1,0 +1,2482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EventFlow - Seamless Event Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* Custom styles to ensure Inter font is applied globally */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Smooth scrolling for navigation links */
+        html {
+            scroll-behavior: smooth;
+        }
+        /* Basic styling for hidden elements, to be toggled by JS */
+        .hidden {
+            display: none;
+        }
+        /* Custom modal overlay styling */
+        .modal-overlay {
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 1000; /* Ensure it's on top of other content */
+        }
+        /* Custom button focus styles for better accessibility */
+        button:focus, a:focus {
+            outline: 2px solid theme('colors.blue.500');
+            outline-offset: 2px;
+        }
+        /* Custom scrollbar for a cleaner look */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        /* Keyframe animation for a subtle hero section entrance */
+        @keyframes fadeInSlideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .animate-fadeInSlideUp {
+            animation: fadeInSlideUp 0.8s ease-out forwards;
+        }
+
+        /* Custom styles for social icons */
+        .social-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background-color: #e2e8f0; /* Tailwind gray-200 */
+            color: #4a5568; /* Tailwind gray-700 */
+            font-size: 1.5rem;
+            transition: all 0.3s ease-in-out;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .social-icon:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+        }
+
+        .social-icon.linkedin:hover { background-color: #0077B5; color: white; }
+        .social-icon.github:hover { background-color: #333; color: white; }
+        .social-icon.twitter:hover { background-color: #1DA1F2; color: white; }
+        .social-icon.email:hover { background-color: #EA4335; color: white; } /* Google Red */
+        .social-icon.whatsapp:hover { background-color: #25D366; color: white; }
+
+        /* Styles for the new Event Planner tabs */
+        .tab-button.active {
+            background-color: #6366f1; /* Indigo 500 */
+            color: white;
+            font-weight: 600;
+        }
+        /* Custom modal overlay for the new planner's modals */
+        .planner-modal-overlay {
+            background-color: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(3px);
+            z-index: 1000;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .planner-modal-content {
+            z-index: 1001;
+        }
+
+        /* Slider Styles */
+        .slide.active {
+            opacity: 1;
+            z-index: 10;
+            animation: kenburns-top 10s ease-out both;
+        }
+
+        .slider-dot {
+            width: 12px;
+            height: 12px;
+            background-color: rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .slider-dot.active {
+            background-color: white;
+        }
+
+        @keyframes kenburns-top {
+          0% {
+            transform: scale(1) translateY(0);
+            transform-origin: 50% 16%;
+          }
+          100% {
+            transform: scale(1.25) translateY(-15px);
+            transform-origin: top;
+          }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <header class="bg-white shadow-md py-4 px-6 md:px-10 sticky top-0 z-50 rounded-b-lg">
+        <nav class="container mx-auto flex justify-between items-center">
+            <a href="#" id="home-link-logo" class="text-2xl font-bold text-indigo-700 hover:text-indigo-900 transition duration-300 ease-in-out">
+                EventFlow
+            </a>
+
+            <div class="md:hidden">
+                <button id="mobile-menu-button" class="text-gray-600 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-md p-2 transition duration-200">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <ul id="desktop-menu" class="hidden md:flex space-x-6">
+                <li><a href="#features" class="text-gray-600 hover:text-indigo-700 font-medium transition duration-300 ease-in-out">Features</a></li>
+                <li><a href="#dashboard" class="text-gray-600 hover:text-indigo-700 font-medium transition duration-300 ease-in-out">Dashboard</a></li>
+                <li><a href="#team" class="text-gray-600 hover:text-indigo-700 font-medium transition duration-300 ease-in-out">Our Team</a></li>
+                <li><a href="#event-planner-section" id="event-planner-link" class="text-gray-600 hover:text-indigo-700 font-medium transition duration-300 ease-in-out">Plan Event</a></li>
+                <li><a href="#connect" class="text-gray-600 hover:text-indigo-700 font-medium transition duration-300 ease-in-out">Contact</a></li>
+                <li><button id="auth-button" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition duration-300 ease-in-out shadow-md transform hover:scale-105">Sign In</button></li>
+            </ul>
+        </nav>
+
+        <div id="mobile-menu-dropdown" class="hidden md:hidden mt-4 bg-white rounded-lg shadow-lg py-2 transition-all duration-300 ease-in-out">
+            <ul class="flex flex-col space-y-2 px-4">
+                <li><a href="#features" class="block text-gray-700 hover:bg-gray-100 py-2 px-3 rounded-md transition duration-200">Features</a></li>
+                <li><a href="#dashboard" class="block text-gray-700 hover:bg-gray-100 py-2 px-3 rounded-md transition duration-200">Dashboard</a></li>
+                <li><a href="#team" class="block text-gray-700 hover:bg-gray-100 py-2 px-3 rounded-md transition duration-300">Our Team</a></li>
+                <li><a href="#event-planner-section" id="event-planner-link-mobile" class="block text-gray-700 hover:bg-gray-100 py-2 px-3 rounded-md transition duration-300">Plan Event</a></li>
+                <li><a href="#connect" class="block text-gray-700 hover:bg-gray-100 py-2 px-3 rounded-md transition duration-300">Contact</a></li>
+                <li><button id="auth-button-mobile" class="block bg-indigo-600 text-white py-2 px-3 rounded-md text-center mt-2 hover:bg-indigo-700 transition duration-300">Sign In</button></li>
+            </ul>
+        </div>
+    </header>
+
+    <main id="main-content-sections">
+        <section id="home-section" class="bg-gradient-to-r from-indigo-600 to-purple-700 text-white py-20 px-6 md:px-10 text-center rounded-b-3xl shadow-xl animate-fadeInSlideUp">
+            <div class="container mx-auto max-w-4xl">
+                <h1 class="text-4xl md:text-5xl font-extrabold leading-tight mb-6">
+                    Effortless Event Management, Exceptional Experiences
+                </h1>
+                <p class="text-lg md:text-xl mb-8 opacity-90">
+                    Streamline your event planning, engage your attendees, and analyze your success with EventFlow.
+                </p>
+                <a href="#dashboard" class="bg-white text-indigo-700 font-bold py-3 px-8 rounded-full text-lg hover:bg-gray-100 transition duration-300 ease-in-out shadow-lg transform hover:scale-105">
+                    Start Planning Now
+                </a>
+                <div id="image-slider" class="mt-12 relative w-full max-w-4xl mx-auto h-64 md:h-96 rounded-2xl shadow-2xl overflow-hidden">
+                    <div class="slider-track h-full">
+                        <div class="slide absolute w-full h-full bg-cover bg-center transition-opacity duration-1000 ease-in-out opacity-0">
+                            <img src="https://images.unsplash.com/photo-1511795409834-ef04bbd61622?q=80&w=2070&auto=format&fit=crop" alt="Wedding Event" class="w-full h-full object-cover">
+                        </div>
+                        <div class="slide absolute w-full h-full bg-cover bg-center transition-opacity duration-1000 ease-in-out opacity-0">
+                            <img src="https://images.unsplash.com/photo-1519751138087-5bf79df62d5b?q=80&w=2070&auto=format&fit=crop" alt="Corporate Event" class="w-full h-full object-cover">
+                        </div>
+                        <div class="slide absolute w-full h-full bg-cover bg-center transition-opacity duration-1000 ease-in-out opacity-0">
+                            <img src="https://images.unsplash.com/photo-1505236858219-8359eb29e329?q=80&w=2162&auto=format&fit=crop" alt="Birthday Party" class="w-full h-full object-cover">
+                        </div>
+                        <div class="slide absolute w-full h-full bg-cover bg-center transition-opacity duration-1000 ease-in-out opacity-0">
+                             <img src="https://images.unsplash.com/photo-1487537722239-14a29d42115f?q=80&w=2072&auto=format&fit=crop" alt="Music Concert" class="w-full h-full object-cover">
+                        </div>
+                        <div class="slide absolute w-full h-full bg-cover bg-center transition-opacity duration-1000 ease-in-out opacity-0">
+                            <img src="https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?q=80&w=2070&auto=format&fit=crop" alt="Festival" class="w-full h-full object-cover">
+                        </div>
+                    </div>
+                    <button id="slider-prev" class="absolute top-1/2 left-4 transform -translate-y-1/2 bg-white/50 hover:bg-white/80 text-gray-800 p-2 rounded-full shadow-md transition">
+                        &#10094;
+                    </button>
+                    <button id="slider-next" class="absolute top-1/2 right-4 transform -translate-y-1/2 bg-white/50 hover:bg-white/80 text-gray-800 p-2 rounded-full shadow-md transition">
+                        &#10095;
+                    </button>
+                    <div id="slider-dots" class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2"></div>
+                </div>
+            </div>
+        </section>
+
+        <section id="features" class="py-16 px-6 md:px-10 bg-white">
+            <div class="container mx-auto">
+                <h2 class="text-3xl md:text-4xl font-bold text-center text-gray-800 mb-12">Key Features</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <div class="bg-gray-100 p-8 rounded-xl shadow-lg hover:shadow-xl transition duration-300 ease-in-out transform hover:-translate-y-1">
+                        <div class="text-indigo-600 mb-4 transition duration-300 transform hover:scale-110">
+                            <svg class="w-10 h-10 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                        </div>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3 text-center">Comprehensive Planning</h3>
+                        <p class="text-gray-700 text-center">
+                            From concept to execution, manage every detail of your event, including tasks, timelines, and resources.
+                        </p>
+                    </div>
+
+                    <div class="bg-gray-100 p-8 rounded-xl shadow-lg hover:shadow-xl transition duration-300 ease-in-out transform hover:-translate-y-1">
+                        <div class="text-indigo-600 mb-4 transition duration-300 transform hover:scale-110">
+                            <svg class="w-10 h-10 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H2v-2a3 3 0 015.356-1.857M9 20v-2a3 3 0 00-3-3H4a3 3 0 00-3 3v2m3-3h.01M17 12h.01M12 12h.01M12 12a3 3 0 100-6 3 3 0 000 6zm-3 9a2 2 0 11-4 0 2 2 0 014 0zm11 0a2 2 0 11-4 0 2 2 0 014 0zm-9-9a3 3 0 100-6 3 3 0 000 6z"></path></svg>
+                        </div>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3 text-center">Attendee Management</h3>
+                        <p class="text-gray-700 text-center">
+                            Track registrations, manage guest lists, and provide a seamless check-in experience for all attendees.
+                        </p>
+                    </div>
+
+                    <div class="bg-gray-100 p-8 rounded-xl shadow-lg hover:shadow-xl transition duration-300 ease-in-out transform hover:-translate-y-1">
+                        <div class="text-indigo-600 mb-4 transition duration-300 transform hover:scale-110">
+                            <svg class="w-10 h-10 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+                        </div>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3 text-center">Integrated Communication</h3>
+                        <p class="text-gray-700 text-center">
+                            Send targeted emails, push notifications, and updates to keep your attendees informed and engaged.
+                        </p>
+                    </div>
+
+                    <div class="bg-gray-100 p-8 rounded-xl shadow-lg hover:shadow-xl transition duration-300 ease-in-out transform hover:-translate-y-1">
+                        <div class="text-indigo-600 mb-4 transition duration-300 transform hover:scale-110">
+                            <svg class="w-10 h-10 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 5v2m0 4v2m0 4v2M9 9V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2l2 3v-3h2m-2-4h.01M17 16l4 2v-6a2 2 0 00-2-2h-2"></path></svg>
+                        </div>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3 text-center">Registration & Ticketing</h3>
+                        <p class="text-gray-700 text-center">
+                            Create custom registration forms, sell tickets, and manage payments securely and efficiently.
+                        </p>
+                    </div>
+
+                    <div class="bg-gray-100 p-8 rounded-xl shadow-lg hover:shadow-xl transition duration-300 ease-in-out transform hover:-translate-y-1">
+                        <div class="text-indigo-600 mb-4 transition duration-300 transform hover:scale-110">
+                            <svg class="w-10 h-10 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                        </div>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3 text-center">Venue & Vendor Management</h3>
+                        <p class="text-gray-700 text-center">
+                            Organize venue details, track vendor contracts, and manage logistics with ease.
+                        </p>
+                    </div>
+
+                    <div class="bg-gray-100 p-8 rounded-xl shadow-lg hover:shadow-xl transition duration-300 ease-in-out transform hover:-translate-y-1">
+                        <div class="text-indigo-600 mb-4 transition duration-300 transform hover:scale-110">
+                            <svg class="w-10 h-10 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                        </div>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3 text-center">Reporting & Analytics</h3>
+                        <p class="text-gray-700 text-center">
+                            Gain insights into your event performance with real-time data, attendance reports, and financial summaries.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="dashboard" class="py-16 px-6 md:px-10 bg-gray-50">
+            <div class="container mx-auto">
+                <h2 class="text-3xl md:text-4xl font-bold text-center text-gray-800 mb-12">Your Event Dashboard</h2>
+                <div class="flex justify-end mb-8">
+                    <button id="add-event-button" class="bg-indigo-600 text-white px-6 py-3 rounded-lg shadow-md hover:bg-indigo-700 transition duration-300 ease-in-out flex items-center transform hover:scale-105 hidden">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                        Add New Event
+                    </button>
+                </div>
+
+                <div id="event-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <p class="text-center text-gray-600 col-span-full">Please sign in to view and manage your events.</p>
+                </div>
+            </div>
+        </section>
+
+        <div id="event-detail-modal" class="fixed inset-0 flex items-center justify-center hidden modal-overlay p-4">
+            <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-2xl transform transition-all duration-300 scale-95 opacity-0" id="modal-content">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-2xl font-bold text-gray-900" id="modal-title">Add New Event</h3>
+                    <button id="close-modal-button" class="text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-md p-1 transition duration-200">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+                <form id="event-form">
+                    <div class="mb-4">
+                        <label for="event-name" class="block text-gray-700 text-sm font-medium mb-2">Event Name</label>
+                        <input type="text" id="event-name" name="eventName" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-200" placeholder="e.g., Annual Marketing Conference" required>
+                    </div>
+                    <div class="mb-4">
+                        <label for="event-date" class="block text-gray-700 text-sm font-medium mb-2">Event Date</label>
+                        <input type="date" id="event-date" name="eventDate" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-200" required>
+                    </div>
+                    <div class="mb-4">
+                        <label for="event-description" class="block text-gray-700 text-sm font-medium mb-2">Description</label>
+                        <textarea id="event-description" name="eventDescription" rows="4" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-200" placeholder="Brief description of the event..."></textarea>
+                    </div>
+                    <div class="mb-4">
+                        <label for="event-attendees" class="block text-gray-700 text-sm font-medium mb-2">Max Attendees</label>
+                        <input type="number" id="event-attendees" name="eventAttendees" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-200" min="1" value="100">
+                    </div>
+                    <div class="mb-6">
+                        <label for="event-status" class="block text-gray-700 text-sm font-medium mb-2">Status</label>
+                        <select id="event-status" name="eventStatus" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-200">
+                            <option value="Upcoming">Upcoming</option>
+                            <option value="Active">Active</option>
+                            <option value="Completed">Completed</option>
+                            <option value="Cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                    <div class="flex justify-end space-x-3">
+                        <button type="button" id="cancel-event-form" class="bg-gray-300 text-gray-800 px-6 py-2 rounded-lg hover:bg-gray-400 transition duration-300 transform hover:scale-105">Cancel</button>
+                        <button type="submit" class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition duration-300 transform hover:scale-105">Save Event</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div id="confirmation-modal" class="fixed inset-0 flex items-center justify-center hidden modal-overlay p-4">
+            <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-sm transform transition-all duration-300 scale-95 opacity-0" id="confirmation-modal-content">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-bold text-gray-900">Confirm Deletion</h3>
+                    <button id="close-confirmation-modal-button" class="text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-md p-1 transition duration-200">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+                <p class="text-gray-700 mb-6">Are you sure you want to delete this event? This action cannot be undone.</p>
+                <div class="flex justify-end space-x-3">
+                    <button type="button" id="cancel-delete-button" class="bg-gray-300 text-gray-800 px-6 py-2 rounded-lg hover:bg-gray-400 transition duration-300 transform hover:scale-105">Cancel</button>
+                    <button type="button" id="confirm-delete-button" class="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition duration-300 transform hover:scale-105">Delete</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="signin-modal" class="fixed inset-0 flex items-center justify-center hidden modal-overlay p-4">
+            <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md transform transition-all duration-300 scale-95 opacity-0" id="signin-modal-content">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-2xl font-bold text-gray-900">Sign In to EventFlow</h3>
+                    <button id="close-signin-modal-button" class="text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-md p-1 transition duration-200">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+                <form id="signin-form">
+                    <div class="mb-4">
+                        <label for="signin-email" class="block text-gray-700 text-sm font-medium mb-2">Email Address</label>
+                        <input type="email" id="signin-email" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-200" placeholder="your.email@example.com" required>
+                    </div>
+                    <div class="mb-6">
+                        <label for="signin-password" class="block text-gray-700 text-sm font-medium mb-2">Password</label>
+                        <input type="password" id="signin-password" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-200" placeholder="********" required>
+                    </div>
+                    <button type="submit" class="w-full bg-indigo-600 text-white px-6 py-3 rounded-lg shadow-md hover:bg-indigo-700 transition duration-300 ease-in-out transform hover:scale-105">
+                        Sign In
+                    </button>
+                    <div id="signin-message" class="mt-4 text-center text-sm font-medium text-red-600 hidden"></div>
+                    <p class="text-center text-gray-600 text-sm mt-4">
+                        Don't have an account? <a href="#" id="show-signup-link" class="text-indigo-600 hover:text-indigo-800 font-medium transition duration-200">Sign Up</a>
+                    </p>
+                </form>
+            </div>
+        </div>
+
+        <div id="signup-modal" class="fixed inset-0 flex items-center justify-center hidden modal-overlay p-4">
+            <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md transform transition-all duration-300 scale-95 opacity-0" id="signup-modal-content">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-2xl font-bold text-gray-900">Create Your Account</h3>
+                    <button id="close-signup-modal-button" class="text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-md p-1 transition duration-200">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+                <form id="signup-form">
+                    <div class="mb-4">
+                        <label for="signup-email" class="block text-gray-700 text-sm font-medium mb-2">Email Address</label>
+                        <input type="email" id="signup-email" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-200" placeholder="your.email@example.com" required>
+                    </div>
+                    <div class="mb-6">
+                        <label for="signup-password" class="block text-gray-700 text-sm font-medium mb-2">Password</label>
+                        <input type="password" id="signup-password" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-200" placeholder="********" required>
+                        <p class="text-xs text-gray-500 mt-1">Password must be at least 6 characters long.</p>
+                    </div>
+                    <button type="submit" class="w-full bg-indigo-600 text-white px-6 py-3 rounded-lg shadow-md hover:bg-indigo-700 transition duration-300 ease-in-out transform hover:scale-105">
+                        Sign Up
+                    </button>
+                    <div id="signup-message" class="mt-4 text-center text-sm font-medium text-red-600 hidden"></div>
+                    <p class="text-center text-gray-600 text-sm mt-4">
+                        Already have an account? <a href="#" id="show-signin-link" class="text-indigo-600 hover:text-indigo-800 font-medium transition duration-200">Sign In</a>
+                    </p>
+                </form>
+            </div>
+        </div>
+
+        <section id="registration" class="py-16 px-6 md:px-10 bg-white hidden">
+            <div class="container mx-auto max-w-2xl">
+                <h2 class="text-3xl md:text-4xl font-bold text-center text-gray-800 mb-12">Register for an Event</h2>
+                <div class="bg-gray-100 p-8 rounded-xl shadow-lg border border-gray-200">
+                    <p class="text-gray-700 mb-6 text-center">
+                        Fill out the form below to register for your desired event.
+                    </p>
+                    <form id="registration-form">
+                        <div class="mb-4">
+                            <label for="reg-event-select" class="block text-gray-700 text-sm font-medium mb-2">Select Event</label>
+                            <select id="reg-event-select" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-200" required>
+                                <option value="">-- Choose an Event --</option>
+                                </select>
+                        </div>
+                        <div class="mb-4">
+                            <label for="reg-name" class="block text-gray-700 text-sm font-medium mb-2">Full Name</label>
+                            <input type="text" id="reg-name" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-200" placeholder="John Doe" required>
+                        </div>
+                        <div class="mb-4">
+                            <label for="reg-email" class="block text-gray-700 text-sm font-medium mb-2">Email Address</label>
+                            <input type="email" id="reg-email" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-200" placeholder="john.doe@example.com" required>
+                        </div>
+                        <div class="mb-6">
+                            <label for="reg-tickets" class="block text-gray-700 text-sm font-medium mb-2">Number of Tickets</label>
+                            <input type="number" id="reg-tickets" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-200" value="1" min="1" required>
+                        </div>
+                        <button type="submit" class="w-full bg-indigo-600 text-white px-6 py-3 rounded-lg shadow-md hover:bg-indigo-700 transition duration-300 ease-in-out transform hover:scale-105">
+                            Register Now
+                        </button>
+                        <div id="registration-message" class="mt-4 text-center text-sm font-medium hidden"></div>
+                    </form>
+                    <div class="mt-8 text-center">
+                        <button id="download-registrations-button" class="bg-purple-600 text-white px-6 py-3 rounded-lg shadow-md hover:bg-purple-700 transition duration-300 ease-in-out transform hover:scale-105 flex items-center mx-auto">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                            Download Registrations (CSV)
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="event-planner-section" class="hidden py-16 px-6 md:px-10 bg-gray-50">
+            <div class="flex flex-col flex-grow w-full max-w-6xl mx-auto p-4 md:p-6 lg:p-8 bg-white rounded-lg shadow-md">
+                <header class="bg-gradient-to-r from-indigo-600 to-purple-700 text-white p-4 md:p-6 rounded-lg shadow-lg mb-6 flex flex-col sm:flex-row justify-between items-center">
+                    <h1 class="text-3xl md:text-4xl font-bold mb-2 sm:mb-0">Event Management System</h1>
+                    <div class="text-sm">
+                        <p>User ID: <span id="planner-user-id" class="font-mono text-indigo-200">Loading...</span></p>
+                    </div>
+                </header>
+
+                <nav class="bg-white p-2 rounded-lg shadow-md mb-6 flex flex-wrap justify-center gap-2 md:gap-4">
+                    <button id="planner-tab-dashboard" class="tab-button px-4 py-2 rounded-md transition-all duration-200 hover:bg-indigo-100 hover:text-indigo-700 active">Dashboard</button>
+                    <button id="planner-tab-event-details" class="tab-button px-4 py-2 rounded-md transition-all duration-200 hover:bg-indigo-100 hover:text-indigo-700">Event Details</button>
+                    <button id="planner-tab-guests" class="tab-button px-4 py-2 rounded-md transition-all duration-200 hover:bg-indigo-100 hover:text-indigo-700">Guests</button>
+                    <button id="planner-tab-tasks" class="tab-button px-4 py-2 rounded-md transition-all duration-200 hover:bg-indigo-100 hover:text-indigo-700">Tasks</button>
+                    <button id="planner-tab-vendors" class="tab-button px-4 py-2 rounded-md transition-all duration-200 hover:bg-indigo-100 hover:text-indigo-700">Vendors</button>
+                    <button id="planner-tab-budget" class="tab-button px-4 py-2 rounded-md transition-all duration-200 hover:bg-indigo-100 hover:text-indigo-700">Budget</button>
+                </nav>
+
+                <main class="flex-grow bg-white p-4 md:p-6 rounded-lg shadow-md">
+                    <div id="planner-loading-indicator" class="hidden flex justify-center items-center h-48">
+                        <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-indigo-500"></div>
+                        <p class="ml-4 text-lg text-gray-600">Loading data...</p>
+                    </div>
+
+                    <section id="planner-dashboard-section" class="tab-content">
+                        <h2 class="text-2xl font-semibold mb-4 text-indigo-700">Event Dashboard</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div class="bg-blue-50 p-4 rounded-lg shadow-sm border border-blue-200">
+                                <h3 class="text-lg font-medium text-blue-800 mb-2">Event Summary</h3>
+                                <p class="text-gray-700">Event Name: <span id="planner-dashboard-event-name" class="font-semibold">N/A</span></p>
+                                <p class="text-gray-700">Date: <span id="planner-dashboard-event-date" class="font-semibold">N/A</span></p>
+                                <p class="text-gray-700">Venue: <span id="planner-dashboard-event-venue" class="font-semibold">N/A</span></p>
+                            </div>
+                            <div class="bg-green-50 p-4 rounded-lg shadow-sm border border-green-200">
+                                <h3 class="text-lg font-medium text-green-800 mb-2">Guest Summary</h3>
+                                <p class="text-gray-700">Total Guests: <span id="planner-dashboard-total-guests" class="font-semibold">0</span></p>
+                                <p class="text-gray-700">RSVP Confirmed: <span id="planner-dashboard-rsvp-confirmed" class="font-semibold">0</span></p>
+                                <p class="text-gray-700">RSVP Pending: <span id="planner-dashboard-rsvp-pending" class="font-semibold">0</span></p>
+                            </div>
+                            <div class="bg-yellow-50 p-4 rounded-lg shadow-sm border border-yellow-200">
+                                <h3 class="text-lg font-medium text-yellow-800 mb-2">Task Summary</h3>
+                                <p class="text-gray-700">Total Tasks: <span id="planner-dashboard-total-tasks" class="font-semibold">0</span></p>
+                                <p class="text-gray-700">Tasks Completed: <span id="planner-dashboard-tasks-completed" class="font-semibold">0</span></p>
+                                <p class="text-gray-700">Tasks Pending: <span id="planner-dashboard-tasks-pending" class="font-semibold">0</span></p>
+                            </div>
+                            <div class="bg-red-50 p-4 rounded-lg shadow-sm border border-red-200">
+                                <h3 class="text-lg font-medium text-red-800 mb-2">Budget Summary</h3>
+                                <p class="text-gray-700">Total Expenses: <span id="planner-dashboard-total-expenses" class="font-semibold">$0.00</span></p>
+                                <p class="text-gray-700">Remaining Budget: <span id="planner-dashboard-remaining-budget" class="font-semibold">$0.00</span></p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section id="planner-event-details-section" class="tab-content hidden">
+                        <h2 class="text-2xl font-semibold mb-4 text-indigo-700">Event Details</h2>
+                        <form id="planner-event-details-form" class="space-y-4 p-4 border border-gray-200 rounded-lg shadow-sm">
+                            <div>
+                                <label for="planner-event-name" class="block text-sm font-medium text-gray-700">Event Name</label>
+                                <input type="text" id="planner-event-name" name="eventName" required
+                                       class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                            <div>
+                                <label for="planner-event-date" class="block text-sm font-medium text-gray-700">Event Date</label>
+                                <input type="date" id="planner-event-date" name="eventDate" required
+                                       class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                            <div>
+                                <label for="planner-event-venue" class="block text-sm font-medium text-gray-700">Event Venue</label>
+                                <input type="text" id="planner-event-venue" name="eventVenue" required
+                                       class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                            <div>
+                                <label for="planner-event-type" class="block text-sm font-medium text-gray-700">Event Type</label>
+                                <input type="text" id="planner-event-type" name="eventType" value="General Event" required
+                                       class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                            <button type="submit" class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200">Save Event Details</button>
+                        </form>
+                    </section>
+
+                    <section id="planner-guests-section" class="tab-content hidden">
+                        <h2 class="text-2xl font-semibold mb-4 text-indigo-700">Guest List</h2>
+                        <form id="planner-add-guest-form" class="mb-6 p-4 border border-gray-200 rounded-lg shadow-sm grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                            <div>
+                                <label for="planner-guest-name" class="block text-sm font-medium text-gray-700">Guest Name</label>
+                                <input type="text" id="planner-guest-name" name="guestName" required
+                                       class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                            <div>
+                                <label for="planner-guest-contact" class="block text-sm font-medium text-gray-700">Contact Info</label>
+                                <input type="text" id="planner-guest-contact" name="guestContact"
+                                       class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                            <div>
+                                <label for="planner-guest-rsvp" class="block text-sm font-medium text-gray-700">RSVP Status</label>
+                                <select id="planner-guest-rsvp" name="guestRsvp"
+                                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                    <option value="Pending">Pending</option>
+                                    <option value="Confirmed">Confirmed</option>
+                                    <option value="Declined">Declined</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="md:col-span-3 w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200">Add Guest</button>
+                        </form>
+
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200 border border-gray-200 rounded-lg shadow-sm">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">RSVP</th>
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="planner-guests-list" class="bg-white divide-y divide-gray-200">
+                                    <tr>
+                                        <td colspan="4" class="px-4 py-2 text-sm text-gray-500 text-center">No guests added yet.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+
+                    <section id="planner-tasks-section" class="tab-content hidden">
+                        <h2 class="text-2xl font-semibold mb-4 text-indigo-700">Tasks</h2>
+                        <form id="planner-add-task-form" class="mb-6 p-4 border border-gray-200 rounded-lg shadow-sm grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                            <div>
+                                <label for="planner-task-description" class="block text-sm font-medium text-gray-700">Task Description</label>
+                                <input type="text" id="planner-task-description" name="taskDescription" required
+                                       class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                            <div>
+                                <label for="planner-task-due-date" class="block text-sm font-medium text-gray-700">Due Date</label>
+                                <input type="date" id="planner-task-due-date" name="taskDueDate"
+                                       class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                            <div>
+                                <label for="planner-task-status" class="block text-sm font-medium text-gray-700">Status</label>
+                                <select id="planner-task-status" name="taskStatus"
+                                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                    <option value="Pending">Pending</option>
+                                    <option value="In Progress">In Progress</option>
+                                    <option value="Completed">Completed</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="md:col-span-3 w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200">Add Task</button>
+                        </form>
+
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200 border border-gray-200 rounded-lg shadow-sm">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="planner-tasks-list" class="bg-white divide-y divide-gray-200">
+                                    <tr>
+                                        <td colspan="4" class="px-4 py-2 text-sm text-gray-500 text-center">No tasks added yet.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+
+                    <section id="planner-vendors-section" class="tab-content hidden">
+                        <h2 class="text-2xl font-semibold mb-4 text-indigo-700">Vendors</h2>
+                        <form id="planner-add-vendor-form" class="mb-6 p-4 border border-gray-200 rounded-lg shadow-sm grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                            <div>
+                                <label for="planner-vendor-name" class="block text-sm font-medium text-gray-700">Vendor Name</label>
+                                <input type="text" id="planner-vendor-name" name="vendorName" required
+                                       class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                            <div>
+                                <label for="planner-vendor-service" class="block text-sm font-medium text-gray-700">Service</label>
+                                <input type="text" id="planner-vendor-service" name="vendorService"
+                                       class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                            <div>
+                                <label for="planner-vendor-contact" class="block text-sm font-medium text-gray-700">Contact Info</label>
+                                <input type="text" id="planner-vendor-contact" name="vendorContact"
+                                       class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                            <div>
+                                <label for="planner-vendor-cost" class="block text-sm font-medium text-gray-700">Cost ($)</label>
+                                <input type="number" id="planner-vendor-cost" name="vendorCost" step="0.01" value="0.00"
+                                       class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                            <button type="submit" class="md:col-span-4 w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200">Add Vendor</button>
+                        </form>
+
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200 border border-gray-200 rounded-lg shadow-sm">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service</th>
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cost</th>
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="planner-vendors-list" class="bg-white divide-y divide-gray-200">
+                                    <tr>
+                                        <td colspan="5" class="px-4 py-2 text-sm text-gray-500 text-center">No vendors added yet.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+
+                    <section id="planner-budget-section" class="tab-content hidden">
+                        <h2 class="text-2xl font-semibold mb-4 text-indigo-700">Budget Tracking</h2>
+                        <form id="planner-add-expense-form" class="mb-6 p-4 border border-gray-200 rounded-lg shadow-sm grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                            <div>
+                                <label for="planner-expense-item" class="block text-sm font-medium text-gray-700">Expense Item</label>
+                                <input type="text" id="planner-expense-item" name="expenseItem" required
+                                       class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                            <div>
+                                <label for="planner-expense-amount" class="block text-sm font-medium text-gray-700">Amount ($)</label>
+                                <input type="number" id="planner-expense-amount" name="expenseAmount" step="0.01" value="0.00" required
+                                       class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                            <div>
+                                <label for="planner-expense-category" class="block text-sm font-medium text-gray-700">Category</label>
+                                <select id="planner-expense-category" name="expenseCategory"
+                                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                    <option value="Food">Food</option>
+                                    <option value="Venue">Venue</option>
+                                    <option value="Decorations">Decorations</option>
+                                    <option value="Entertainment">Entertainment</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="md:col-span-3 w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200">Add Expense</button>
+                        </form>
+
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200 border border-gray-200 rounded-lg shadow-sm">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item</th>
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="planner-expenses-list" class="bg-white divide-y divide-gray-200">
+                                    <tr>
+                                        <td colspan="4" class="px-4 py-2 text-sm text-gray-500 text-center">No expenses added yet.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="mt-6 p-4 bg-purple-50 border border-purple-200 rounded-lg shadow-sm text-right">
+                            <p class="text-lg font-medium text-purple-800">Total Budget: <span id="planner-total-budget" class="font-semibold">$0.00</span></p>
+                            <p class="text-lg font-medium text-purple-800">Total Expenses: <span id="planner-budget-total-expenses" class="font-semibold">$0.00</span></p>
+                            <p class="text-xl font-bold text-indigo-700">Remaining Budget: <span id="planner-budget-remaining-budget" class="font-semibold text-green-600">$0.00</span></p>
+                            <button id="planner-set-total-budget-button" class="mt-4 bg-purple-600 text-white py-2 px-4 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors duration-200">Set Total Budget</button>
+                        </div>
+                    </section>
+                </main>
+
+                <div id="planner-set-budget-modal" class="planner-modal-overlay hidden">
+                    <div class="planner-modal-content bg-white rounded-lg shadow-xl p-6 w-full max-w-sm">
+                        <h3 class="text-xl font-semibold mb-4 text-indigo-700">Set Total Budget</h3>
+                        <input type="number" id="planner-new-total-budget" placeholder="Enter total budget" step="0.01" required
+                               class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        <div class="mt-6 flex justify-end space-x-3">
+                            <button id="planner-cancel-budget-set" class="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400">Cancel</button>
+                            <button id="planner-save-budget-set" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Save Budget</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="planner-edit-modal" class="planner-modal-overlay hidden">
+                    <div class="planner-modal-content bg-white rounded-lg shadow-xl p-6 w-full max-w-lg">
+                        <h3 class="text-xl font-semibold mb-4 text-indigo-700" id="planner-edit-modal-title">Edit Item</h3>
+                        <form id="planner-edit-form" class="space-y-4"></form>
+                        <div class="mt-6 flex justify-end space-x-3">
+                            <button id="planner-cancel-edit" class="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400">Cancel</button>
+                            <button id="planner-save-edit" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Save Changes</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="communication" class="py-16 px-6 md:px-10 bg-gray-50 hidden">
+            <div class="container mx-auto max-w-4xl text-center">
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-8">Communication Hub</h2>
+                <p class="text-gray-700 text-lg mb-4">
+                    This section would house tools for sending emails, push notifications, and managing attendee messages.
+                    Features like segmented messaging, template creation, and real-time chat integration would be implemented here.
+                </p>
+                <p class="text-gray-500 text-sm">
+                    (Further development required for full functionality)
+                </p>
+            </div>
+        </section>
+
+        <section id="venue-vendor" class="py-16 px-6 md:px-10 bg-white hidden">
+            <div class="container mx-auto max-w-4xl text-center">
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-8">Venue & Vendor Management</h2>
+                <p class="text-gray-700 text-lg mb-4">
+                    Here, you would manage all aspects related to your event venues and vendors. This includes
+                    contract tracking, payment schedules, contact information, and specific requirements for each.
+                </p>
+                <p class="text-gray-500 text-sm">
+                    (Further development required for full functionality)
+                </p>
+            </div>
+        </section>
+
+        <section id="reporting-analytics" class="py-16 px-6 md:px-10 bg-gray-50 hidden">
+            <div class="container mx-auto max-w-4xl text-center">
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-8">Reporting & Analytics</h2>
+                <p class="text-gray-700 text-lg mb-4">
+                    This powerful section provides insights into your event's performance. You'd find detailed reports on
+                    registration numbers, attendee demographics, financial summaries, and engagement metrics to help you
+                    optimize future events.
+                </p>
+                <p class="text-gray-500 text-sm">
+                    (Further development required for full functionality)
+                </p>
+            </div>
+        </section>
+
+        <section id="team" class="py-16 px-6 md:px-10 bg-white">
+            <div class="container mx-auto">
+                <h2 class="text-3xl md:text-4xl font-bold text-center text-gray-800 mb-12">Meet Our Team</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+                    <div class="bg-gray-100 p-6 rounded-xl shadow-lg text-center hover:shadow-xl transition duration-300 ease-in-out transform hover:-translate-y-1">
+                        <img src="https://placehold.co/128x128/a78bfa/ffffff?text=JD" alt="John Doe" class="w-32 h-32 rounded-full mx-auto mb-4 object-cover border-4 border-indigo-300 shadow-md">
+                        <h3 class="text-xl font-semibold text-gray-900 mb-2">John Doe</h3>
+                        <p class="text-indigo-600 font-medium mb-2">Lead Event Strategist</p>
+                        <p class="text-gray-700 text-sm mb-3">
+                            With 15+ years in event planning, John has successfully managed over 200 large-scale conferences and festivals.
+                        </p>
+                        <p class="text-gray-600 text-xs">
+                            **Key Achievements:** Spearheaded the annual 'InnovateX' summit for 5 consecutive years, increasing attendance by 30% each year. Implemented sustainable event practices, reducing waste by 40%.
+                        </p>
+                    </div>
+
+                    <div class="bg-gray-100 p-6 rounded-xl shadow-lg text-center hover:shadow-xl transition duration-300 ease-in-out transform hover:-translate-y-1">
+                        <img src="https://placehold.co/128x128/60a5fa/ffffff?text=JA" alt="Jane Appleseed" class="w-32 h-32 rounded-full mx-auto mb-4 object-cover border-4 border-blue-300 shadow-md">
+                        <h3 class="text-xl font-semibold text-gray-900 mb-2">Jane Appleseed</h3>
+                        <p class="text-blue-600 font-medium mb-2">Attendee Experience Manager</p>
+                        <p class="text-gray-700 text-sm mb-3">
+                            Jane specializes in creating seamless attendee journeys, leveraging technology for engaging experiences. 10 years experience.
+                        </p>
+                        <p class="text-600 text-xs">
+                            **Key Achievements:** Developed a custom mobile app for attendee networking, boosting engagement by 50%. Streamlined registration processes, reducing check-in times by 70%.
+                        </p>
+                    </div>
+
+                    <div class="bg-gray-100 p-6 rounded-xl shadow-lg text-center hover:shadow-xl transition duration-300 ease-in-out transform hover:-translate-y-1">
+                        <img src="https://placehold.co/128x128/34d399/ffffff?text=SM" alt="Sam Miller" class="w-32 h-32 rounded-full mx-auto mb-4 object-cover border-4 border-emerald-300 shadow-md">
+                        <h3 class="text-xl font-semibold text-gray-900 mb-2">Sam Miller</h3>
+                        <p class="text-emerald-600 font-medium mb-2">Logistics & Operations Lead</p>
+                        <p class="text-gray-700 text-sm mb-3">
+                            With a background in large-scale operations, Sam ensures every event runs flawlessly from setup to teardown. 12 years experience.
+                        </p>
+                        <p class="text-gray-600 text-xs">
+                            **Key Achievements:** Coordinated logistics for international trade shows, managing complex vendor relationships. Optimized resource allocation, saving 15% on operational costs.
+                        </p>
+                    </div>
+
+                    <div class="bg-gray-100 p-6 rounded-xl shadow-lg text-center hover:shadow-xl transition duration-300 ease-in-out transform hover:-translate-y-1">
+                        <img src="https://placehold.co/128x128/fcd34d/ffffff?text=AL" alt="Alice Lee" class="w-32 h-32 rounded-full mx-auto mb-4 object-cover border-4 border-amber-300 shadow-md">
+                        <h3 class="text-xl font-semibold text-gray-900 mb-2">Alice Lee</h3>
+                        <p class="text-amber-600 font-medium mb-2">Marketing & Communications</p>
+                        <p class="text-gray-700 text-sm mb-3">
+                            Alice crafts compelling narratives and campaigns that ensure maximum visibility and engagement for all events. 8 years experience.
+                        </p>
+                        <p class="text-gray-600 text-xs">
+                            **Key Achievements:** Launched successful digital marketing campaigns resulting in 25% increase in early bird registrations. Managed press relations for high-profile events, securing extensive media coverage.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="connect" class="py-16 px-6 md:px-10 bg-gray-50">
+            <div class="container mx-auto max-w-3xl bg-white p-8 rounded-xl shadow-lg border border-gray-200 text-center">
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-4 flex items-center justify-center">
+                    <svg class="w-8 h-8 text-indigo-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                    Connect With Me
+                </h2>
+                <div class="w-24 h-1 bg-indigo-500 mx-auto rounded mb-6"></div>
+                <p class="text-gray-700 text-lg mb-8">
+                    Feel free to reach out to me through any of the platforms below!
+                </p>
+                <div class="flex justify-center space-x-6">
+                    <a href="https://www.linkedin.com/in/yourprofile" target="_blank" class="social-icon linkedin" aria-label="LinkedIn">
+                        <i class="fab fa-linkedin-in"></i>
+                    </a>
+                    <a href="https://github.com/yourprofile" target="_blank" class="social-icon github" aria-label="GitHub">
+                        <i class="fab fa-github"></i>
+                    </a>
+                    <a href="https://twitter.com/yourprofile" target="_blank" class="social-icon twitter" aria-label="Twitter">
+                        <i class="fab fa-twitter"></i>
+                    </a>
+                    <a href="mailto:your.email@example.com" class="social-icon email" aria-label="Email">
+                        <i class="fa fa-envelope"></i>
+                    </a>
+                    <a href="https://wa.me/yourphonenumber" target="_blank" class="social-icon whatsapp" aria-label="WhatsApp">
+                        <i class="fab fa-whatsapp"></i>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer id="contact" class="bg-gray-800 text-white py-10 px-6 md:px-10 rounded-t-lg shadow-inner">
+        <div class="container mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 text-center md:text-left">
+            <div>
+                <h3 class="text-xl font-bold mb-4">About EventFlow</h3>
+                <p class="text-gray-400 text-sm">
+                    EventFlow is dedicated to simplifying event management, empowering organizers to create unforgettable experiences with ease and efficiency.
+                </p>
+            </div>
+
+            <div>
+                <h3 class="text-xl font-bold mb-4">Quick Links</h3>
+                <ul class="space-y-2">
+                    <li><a href="#features" class="text-gray-400 hover:text-white transition duration-300 ease-in-out">Features</a></li>
+                    <li><a href="#dashboard" class="text-gray-400 hover:text-white transition duration-300 ease-in-out">Dashboard</a></li>
+                    <li><a href="#team" class="text-gray-400 hover:text-white transition duration-300 ease-in-out">Our Team</a></li>
+                    <li><a href="#event-planner-section" class="text-gray-400 hover:text-white transition duration-300 ease-in-out">Plan Event</a></li>
+                    <li><a href="#connect" class="text-gray-400 hover:text-white transition duration-300 ease-in-out">Contact Us</a></li>
+                </ul>
+            </div>
+
+            <div>
+                <h3 class="text-xl font-bold mb-4">Contact Us</h3>
+                <p class="text-gray-400 text-sm">
+                    Email: support@eventflow.com<br>
+                    Phone: +1 (555) 123-4567<br>
+                    Address: 123 Event Ave, Suite 100, City, Country
+                </p>
+            </div>
+        </div>
+        <div class="border-t border-gray-700 mt-8 pt-8 text-center text-gray-500 text-sm">
+            &copy; 2025 EventFlow. All rights reserved.
+        </div>
+    </footer>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        // Global variables for Firebase (MANDATORY TO USE)
+        const canvasAppId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        
+        // Your web app's Firebase configuration (updated with all details)
+        const firebaseConfig = {
+            apiKey: "AIzaSyC0SgZdxaBagK0U4qG5olmJl8LDciZ-6og",
+            authDomain: "event-49a89.firebaseapp.com",
+            projectId: "event-49a89",
+            storageBucket: "event-49a89.firebasestorage.app",
+            messagingSenderId: "1061205319218",
+            appId: "1:1061205319218:web:f70c6c18001a3d2c7d262b",
+            measurementId: "G-PRGXW1NF1B"
+        };
+
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        let app, db, auth, userId;
+        let isAuthReady = false; // Flag to indicate if Firebase Auth is initialized and user status checked
+
+        /**
+         * Initializes Firebase and authenticates the user.
+         * Sets up Firestore and Auth instances.
+         */
+        async function initializeFirebase() {
+            try {
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                console.log("Firebase initialized. Attempting authentication...");
+
+                if (initialAuthToken) {
+                    try {
+                        await signInWithCustomToken(auth, initialAuthToken);
+                        console.log("Signed in with Canvas custom token.");
+                    } catch (error) {
+                        console.warn("Failed to sign in with Canvas custom token:", error.code, error.message);
+                        console.log("Falling back to anonymous sign-in...");
+                        await signInAnonymously(auth);
+                        console.log("Signed in anonymously.");
+                    }
+                } else {
+                    console.log("No Canvas custom token provided. Signing in anonymously...");
+                    await signInAnonymously(auth);
+                    console.log("Signed in anonymously.");
+                }
+
+                onAuthStateChanged(auth, async (user) => {
+                    const authButton = document.getElementById('auth-button');
+                    const authButtonMobile = document.getElementById('auth-button-mobile');
+                    const addEventButton = document.getElementById('add-event-button');
+                    const footerContact = document.querySelector('#contact p:nth-of-type(2)');
+                    const plannerUserIdSpan = document.getElementById('planner-user-id');
+                    
+                    console.log("Auth state changed. User:", user ? user.uid : "null");
+
+                    if (user) {
+                        userId = user.uid;
+                        console.log("User is authenticated. User ID:", userId);
+
+                        authButton.textContent = 'Sign Out';
+                        authButton.classList.remove('bg-indigo-600', 'hover:bg-indigo-700');
+                        authButton.classList.add('bg-red-600', 'hover:bg-red-700');
+                        authButton.onclick = window.handleSignOut;
+
+                        authButtonMobile.textContent = 'Sign Out';
+                        authButtonMobile.classList.remove('bg-indigo-600', 'hover:bg-indigo-700');
+                        authButtonMobile.classList.add('bg-red-600', 'hover:bg-red-700');
+                        authButtonMobile.onclick = window.handleSignOut;
+
+                        addEventButton.classList.remove('hidden');
+
+                        if (footerContact) {
+                            let existingContent = footerContact.innerHTML;
+                            if (!existingContent.includes('User ID:')) {
+                                footerContact.innerHTML += `<br>User ID: <span class="font-bold text-white">${userId}</span>`;
+                            }
+                        }
+                        if (plannerUserIdSpan) {
+                            plannerUserIdSpan.textContent = userId;
+                        }
+
+                        if (typeof window.closeSignInModal === 'function') window.closeSignInModal();
+                        if (typeof window.closeSignUpModal === 'function') window.closeSignUpModal();
+
+                        isAuthReady = true;
+
+                        await checkAndAddDefaultEvents();
+                        window.loadEventsFromFirestore();
+                        window.loadRegistrationsForDownload();
+                        window.populateEventSelect();
+                        // Initialize and load data for the new planner section
+                        window.initPlannerDataListeners();
+
+                    } else {
+                        userId = null;
+                        console.log("No user is signed in. Updating UI for logged-out state.");
+
+                        authButton.textContent = 'Sign In';
+                        authButton.classList.remove('bg-red-600', 'hover:bg-red-700');
+                        authButton.classList.add('bg-indigo-600', 'hover:bg-indigo-700');
+                        authButton.onclick = window.openSignInModal;
+
+                        authButtonMobile.textContent = 'Sign In';
+                        authButtonMobile.classList.remove('bg-red-600', 'hover:bg-red-700');
+                        authButtonMobile.classList.add('bg-indigo-600', 'hover:bg-indigo-700');
+                        authButtonMobile.onclick = window.openSignInModal;
+
+                        addEventButton.classList.add('hidden');
+
+                        document.getElementById('event-list').innerHTML = `
+                            <p class="text-center text-gray-600 col-span-full">Please sign in to view and manage your events.</p>
+                        `;
+                        const regEventSelect = document.getElementById('reg-event-select');
+                        if (regEventSelect) {
+                            regEventSelect.innerHTML = '<option value="">-- Choose an Event --</option>';
+                        }
+
+                        if (footerContact) {
+                            footerContact.innerHTML = footerContact.innerHTML.split('<br>User ID:')[0];
+                        }
+                        if (plannerUserIdSpan) {
+                            plannerUserIdSpan.textContent = 'Not Signed In';
+                        }
+                        isAuthReady = true;
+                    }
+                });
+
+            } catch (error) {
+                console.error("Error initializing Firebase or signing in:", error);
+            }
+        }
+
+        initializeFirebase();
+
+        window.firebaseApp = app;
+        window.firestoreDb = db;
+        window.firebaseAuth = auth;
+        window.currentUserId = userId;
+
+        // --- Authentication Functions ---
+        function showAuthMessage(modalId, message, isError = true) {
+            const messageElement = document.getElementById(`${modalId}-message`);
+            messageElement.textContent = message;
+            messageElement.classList.remove('hidden', 'text-green-600', 'text-red-600');
+            messageElement.classList.add(isError ? 'text-red-600' : 'text-green-600');
+            messageElement.classList.remove('hidden');
+        }
+
+        window.handleSignUp = async (email, password) => {
+            try {
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                console.log("User signed up:", userCredential.user.uid);
+                showAuthMessage('signup', 'Account created successfully! You are now logged in.', false);
+            } catch (error) {
+                console.error("Sign up error:", error);
+                let errorMessage = 'Failed to create account. Please try again.';
+                if (error.code === 'auth/email-already-in-use') {
+                    errorMessage = 'This email is already in use.';
+                } else if (error.code === 'auth/weak-password') {
+                    errorMessage = 'Password is too weak. Must be at least 6 characters.';
+                } else if (error.code === 'auth/invalid-email') {
+                    errorMessage = 'Invalid email address.';
+                }
+                showAuthMessage('signup', errorMessage);
+            }
+        }
+
+        window.handleSignIn = async (email, password) => {
+            try {
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                console.log("User signed in:", userCredential.user.uid);
+                showAuthMessage('signin', 'Signed in successfully!', false);
+            } catch (error) {
+                console.error("Sign in error:", error);
+                let errorMessage = 'Failed to sign in. Please check your credentials.';
+                if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+                    errorMessage = 'Invalid email or password.';
+                } else if (error.code === 'auth/invalid-email') {
+                    errorMessage = 'Invalid email address.';
+                }
+                showAuthMessage('signin', errorMessage);
+            }
+        }
+
+        window.handleSignOut = async () => {
+            try {
+                await signOut(auth);
+                console.log("User signed out.");
+            } catch (error) {
+                console.error("Sign out error:", error);
+            }
+        }
+
+        // --- Firestore Data Management Functions (for main EventFlow dashboard) ---
+
+        const defaultEvents = [
+            { eventName: "Wedding Celebration", eventDate: "2025-12-25", eventDescription: "A joyous celebration of love and union.", maxAttendees: 200, eventStatus: "Upcoming", currentAttendees: 0 },
+            { eventName: "Birthday Party", eventDate: "2025-08-15", eventDescription: "Celebrate another year with friends and family!", maxAttendees: 50, eventStatus: "Upcoming", currentAttendees: 0 },
+            { eventName: "Corporate Annual Gala", eventDate: "2025-11-20", eventDescription: "Our annual gathering to celebrate achievements and future goals.", maxAttendees: 500, eventStatus: "Upcoming", currentAttendees: 0 },
+            { eventName: "Family Reunion Picnic", eventDate: "2025-07-20", eventDescription: "A fun-filled day for the entire family with games and food.", maxAttendees: 100, eventStatus: "Upcoming", currentAttendees: 0 },
+            { eventName: "School Farewell Party", eventDate: "2026-03-10", eventDescription: "Bidding adieu to our graduating class with memories and cheers.", maxAttendees: 300, eventStatus: "Upcoming", currentAttendees: 0 },
+            { eventName: "College Tech Fest 2025", eventDate: "2025-10-05", eventDescription: "An exciting festival showcasing innovation, workshops, and competitions.", maxAttendees: 1000, eventStatus: "Upcoming", currentAttendees: 0 },
+            { eventName: "Private Gathering", eventDate: "2025-09-01", eventDescription: "An exclusive, intimate event for select guests.", maxAttendees: 30, eventStatus: "Upcoming", currentAttendees: 0 }
+        ];
+
+        const checkAndAddDefaultEvents = async () => {
+            if (!db || !userId) {
+                console.log("checkAndAddDefaultEvents: Firestore or User ID not ready.");
+                return;
+            }
+            try {
+                const eventsCollectionRef = collection(db, `artifacts/${canvasAppId}/users/${userId}/events`);
+                console.log(`checkAndAddDefaultEvents: Checking collection path: artifacts/${canvasAppId}/users/${userId}/events`);
+                const snapshot = await getDocs(eventsCollectionRef);
+
+                if (snapshot.empty) {
+                    console.log("User's event collection is empty. Adding default events...");
+                    for (const event of defaultEvents) {
+                        await addDoc(eventsCollectionRef, { ...event, createdAt: new Date(), createdBy: userId });
+                    }
+                    console.log("Default events added successfully.");
+                } else {
+                    console.log("User already has events. Skipping default event addition.");
+                }
+            } catch (error) {
+                console.error("Error checking or adding default events:", error);
+            }
+        };
+
+        const attachEventCardListeners = () => {
+            document.querySelectorAll('.edit-event-button').forEach(button => {
+                button.removeEventListener('click', window.handleEditClick);
+            });
+            document.querySelectorAll('.delete-event-button').forEach(button => {
+                button.removeEventListener('click', window.handleDeleteClick);
+            });
+
+            document.querySelectorAll('.edit-event-button').forEach(button => {
+                button.addEventListener('click', window.handleEditClick);
+            });
+
+            document.querySelectorAll('.delete-event-button').forEach(button => {
+                button.addEventListener('click', window.handleDeleteClick);
+            });
+        };
+
+        window.loadEventsFromFirestore = () => {
+            if (!db || !userId) {
+                console.log("loadEventsFromFirestore: Firestore or User ID not ready for event loading.");
+                return;
+            }
+
+            const eventsCollectionRef = collection(db, `artifacts/${canvasAppId}/users/${userId}/events`);
+            console.log(`loadEventsFromFirestore: Listening to collection path: artifacts/${canvasAppId}/users/${userId}/events`);
+
+            onSnapshot(eventsCollectionRef, (snapshot) => {
+                const eventListContainer = document.getElementById('event-list');
+                eventListContainer.innerHTML = '';
+                console.log(`loadEventsFromFirestore: Received snapshot. Empty: ${snapshot.empty}, Size: ${snapshot.size}`);
+
+                if (snapshot.empty) {
+                    eventListContainer.innerHTML = `
+                        <p class="text-center text-gray-600 col-span-full">No events found. Start by adding a new event!</p>
+                    `;
+                    return;
+                }
+
+                snapshot.forEach(doc => {
+                    const eventData = doc.data();
+                    const eventId = doc.id;
+
+                    const newEventCard = document.createElement('div');
+                    newEventCard.classList.add('bg-white', 'p-6', 'rounded-xl', 'shadow-lg', 'border', 'border-gray-200', 'hover:shadow-xl', 'transition', 'duration-300', 'ease-in-out', 'transform', 'hover:-translate-y-1');
+                    newEventCard.dataset.eventId = eventId;
+
+                    const statusClass = eventData.eventStatus === 'Active' ? 'text-green-600' :
+                                        eventData.eventStatus === 'Upcoming' ? 'text-yellow-600' :
+                                        eventData.eventStatus === 'Completed' ? 'text-gray-600' :
+                                        eventData.eventStatus === 'Cancelled' ? 'text-red-600' : 'text-gray-600';
+
+                    newEventCard.innerHTML = `
+                        <h3 class="text-xl font-semibold text-gray-900 mb-2">${eventData.eventName}</h3>
+                        <p class="text-gray-600 mb-4">Date: ${eventData.eventDate}</p>
+                        <p class="text-gray-700 text-sm mb-4">${eventData.eventDescription}</p>
+                        <div class="flex justify-between items-center text-sm text-gray-500">
+                            <span>Attendees: ${eventData.currentAttendees || 0} / ${eventData.maxAttendees}</span>
+                            <span>Status: <span class="font-medium ${statusClass}">${eventData.eventStatus}</span></span>
+                        </div>
+                        <div class="mt-4 flex space-x-2">
+                            <button class="edit-event-button bg-blue-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-600 transition duration-300 transform hover:scale-105">Edit</button>
+                            <button class="delete-event-button bg-red-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-red-600 transition duration-300 transform hover:scale-105">Delete</button>
+                        </div>
+                    `;
+                    eventListContainer.appendChild(newEventCard);
+                });
+                attachEventCardListeners();
+            }, (error) => {
+                console.error("Error fetching events:", error);
+                document.getElementById('event-list').innerHTML = `
+                    <p class="text-center text-red-600 col-span-full">Error loading events. Please try again.</p>
+                `;
+            });
+        };
+
+        window.saveEventToFirestore = async (eventData, eventId = null) => {
+            console.log("saveEventToFirestore: Attempting to save event...");
+            console.log("saveEventToFirestore: Firestore DB instance:", db);
+            console.log("saveEventToFirestore: Current User ID:", userId);
+            console.log("saveEventToFirestore: Event Data:", eventData);
+
+            if (!db || !userId) {
+                console.error("saveEventToFirestore: Firestore or User ID not ready. Cannot save event.");
+                return;
+            }
+            try {
+                const collectionPath = `artifacts/${canvasAppId}/users/${userId}/events`;
+                console.log("saveEventToFirestore: Target collection path:", collectionPath);
+                const eventsCollectionRef = collection(db, collectionPath);
+
+                if (eventId) {
+                    console.log("saveEventToFirestore: Updating existing event with ID:", eventId);
+                    const eventDocRef = doc(db, collectionPath, eventId);
+                    await updateDoc(eventDocRef, eventData);
+                    console.log("saveEventToFirestore: Event updated successfully with ID: ", eventId);
+                } else {
+                    console.log("saveEventToFirestore: Adding new event.");
+                    const docRef = await addDoc(eventsCollectionRef, {
+                        ...eventData,
+                        currentAttendees: 0,
+                        createdAt: new Date(),
+                        createdBy: userId
+                    });
+                    console.log("saveEventToFirestore: New event added successfully with ID: ", docRef.id);
+                }
+            } catch (e) {
+                console.error("saveEventToFirestore: Error saving event: ", e);
+                console.error("saveEventToFirestore: Full error object:", JSON.stringify(e, Object.getOwnPropertyNames(e)));
+            }
+        };
+
+        window.deleteEventFromFirestore = async (eventId) => {
+            console.log("deleteEventFromFirestore: Attempting to delete event:", eventId);
+            console.log("deleteEventFromFirestore: Firestore DB instance:", db);
+            console.log("deleteEventFromFirestore: Current User ID:", userId);
+
+            if (!db || !userId) {
+                console.error("deleteEventFromFirestore: Firestore or User ID not ready. Cannot delete event.");
+                return;
+            }
+            try {
+                const docPath = `artifacts/${canvasAppId}/users/${userId}/events/${eventId}`;
+                console.log("deleteEventFromFirestore: Target document path:", docPath);
+                const eventDocRef = doc(db, docPath);
+                await deleteDoc(eventDocRef);
+                console.log("deleteEventFromFirestore: Event deleted successfully with ID: ", eventId);
+            } catch (e) {
+                console.error("deleteEventFromFirestore: Error deleting event: ", e);
+                console.error("deleteEventFromFirestore: Full error object:", JSON.stringify(e, Object.getOwnPropertyNames(e)));
+            }
+        };
+
+        window.saveRegistrationToFirestore = async (registrationData) => {
+            console.log("saveRegistrationToFirestore: Attempting to save registration...");
+            console.log("saveRegistrationToFirestore: Firestore DB instance:", db);
+            console.log("saveRegistrationToFirestore: Current User ID:", userId);
+            console.log("saveRegistrationToFirestore: Registration Data:", registrationData);
+
+            if (!db || !userId) {
+                console.error("saveRegistrationToFirestore: Firestore DB or User ID is not available. Cannot save registration.");
+                return false;
+            }
+            try {
+                const collectionPath = `artifacts/${canvasAppId}/public/data/registrations`;
+                console.log("saveRegistrationToFirestore: Target collection path:", collectionPath);
+                const registrationsCollectionRef = collection(db, collectionPath);
+                const docRef = await addDoc(registrationsCollectionRef, {
+                    ...registrationData,
+                    registeredBy: userId,
+                    registeredAt: new Date()
+                });
+                console.log("saveRegistrationToFirestore: Registration saved successfully with ID: ", docRef.id);
+
+                const eventDocRef = doc(db, `artifacts/${canvasAppId}/users/${userId}/events`, registrationData.eventId);
+                const eventDocSnap = await getDoc(eventDocRef);
+                if (eventDocSnap.exists()) {
+                    const currentAttendees = (eventDocSnap.data().currentAttendees || 0) + parseInt(registrationData.numTickets);
+                    await updateDoc(eventDocRef, { currentAttendees: currentAttendees });
+                    console.log(`saveRegistrationToFirestore: Updated attendee count for event ${registrationData.eventId} to ${currentAttendees}`);
+                } else {
+                    console.warn(`saveRegistrationToFirestore: Event with ID ${registrationData.eventId} not found when trying to update attendee count.`);
+                }
+
+                return true;
+            } catch (e) {
+                console.error("saveRegistrationToFirestore: Error saving registration to Firestore: ", e);
+                console.error("saveRegistrationToFirestore: Full error object:", JSON.stringify(e, Object.getOwnPropertyNames(e)));
+                return false;
+            }
+        };
+
+        let allRegistrations = [];
+
+        window.loadRegistrationsForDownload = () => {
+            if (!db) {
+                console.log("loadRegistrationsForDownload: Firestore not ready for registration download.");
+                return;
+            }
+            const registrationsCollectionRef = collection(db, `artifacts/${canvasAppId}/public/data/registrations`);
+            console.log(`loadRegistrationsForDownload: Listening to collection path: artifacts/${canvasAppId}/public/data/registrations`);
+
+            onSnapshot(registrationsCollectionRef, (snapshot) => {
+                allRegistrations = [];
+                snapshot.forEach(doc => {
+                    allRegistrations.push(doc.data());
+                });
+                console.log("loadRegistrationsForDownload: All registrations loaded for CSV export:", allRegistrations);
+            }, (error) => {
+                console.error("loadRegistrationsForDownload: Error fetching registrations for download:", error);
+            });
+        };
+
+        window.populateEventSelect = () => {
+            if (!db || !userId) {
+                console.log("populateEventSelect: Firestore or User ID not ready for event select population.");
+                const regEventSelect = document.getElementById('reg-event-select');
+                if (regEventSelect) {
+                    regEventSelect.innerHTML = '<option value="">-- Sign in to see events --</option>';
+                }
+                return;
+            }
+            const regEventSelect = document.getElementById('reg-event-select');
+            const eventsCollectionRef = collection(db, `artifacts/${canvasAppId}/users/${userId}/events`);
+            console.log(`populateEventSelect: Listening to collection path: artifacts/${canvasAppId}/users/${userId}/events`);
+
+            onSnapshot(eventsCollectionRef, (snapshot) => {
+                regEventSelect.innerHTML = '<option value="">-- Choose an Event --</option>';
+                if (snapshot.empty) {
+                    console.log("populateEventSelect: No events found to populate dropdown.");
+                    regEventSelect.innerHTML = '<option value="">-- No events available --</option>';
+                }
+                snapshot.forEach(doc => {
+                    const eventData = doc.data();
+                    const option = document.createElement('option');
+                    option.value = doc.id;
+                    option.textContent = eventData.eventName;
+                    regEventSelect.appendChild(option);
+                });
+            }, (error) => {
+                console.error("populateEventSelect: Error populating event select:", error);
+                const regEventSelect = document.getElementById('reg-event-select');
+                if (regEventSelect) {
+                    regEventSelect.innerHTML = '<option value="">-- Error loading events --</option>';
+                }
+            });
+        };
+
+        window.exportToCsv = (data, filename) => {
+            console.log("exportToCsv: Attempting to export CSV. Data length:", data.length);
+            if (data.length === 0) {
+                console.warn("exportToCsv: No data to export.");
+                const registrationMessage = document.getElementById('registration-message');
+                registrationMessage.classList.remove('hidden', 'text-green-600');
+                registrationMessage.classList.add('text-red-600');
+                registrationMessage.textContent = 'No registration data available to download.';
+                setTimeout(() => registrationMessage.classList.add('hidden'), 3000);
+                return;
+            }
+
+            const header = Object.keys(data[0]).join(',');
+            const rows = data.map(obj => Object.values(obj).map(val => {
+                const processedVal = String(val).replace(/"/g, '""');
+                return `"${processedVal}"`;
+            }).join(','));
+
+            const csvContent = "data:text/csv;charset=utf-8," + [header, ...rows].join('\n');
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", filename);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            console.log("exportToCsv: CSV export triggered.");
+        };
+
+        // --- Firestore Data Management Functions (for the new Event Planner section) ---
+        let plannerDataRef; // Reference to the single document holding all planner data
+
+        /**
+         * Initializes listeners for all planner data (event details, guests, tasks, vendors, budget).
+         * This data will be stored in a single document for simplicity:
+         * `artifacts/{appId}/users/{userId}/planner_data/main_planner_doc`
+         */
+        window.initPlannerDataListeners = () => {
+            if (!db || !userId) {
+                console.log("initPlannerDataListeners: Firestore or User ID not ready.");
+                return;
+            }
+
+            const plannerDocPath = `artifacts/${canvasAppId}/users/${userId}/planner_data/main_planner_doc`;
+            plannerDataRef = doc(db, plannerDocPath);
+            console.log(`initPlannerDataListeners: Listening to planner document: ${plannerDocPath}`);
+
+            onSnapshot(plannerDataRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    console.log("initPlannerDataListeners: Planner data received:", data);
+                    // Populate Event Details tab
+                    document.getElementById('planner-event-name').value = data.eventName || '';
+                    document.getElementById('planner-event-date').value = data.eventDate || '';
+                    document.getElementById('planner-event-venue').value = data.eventVenue || '';
+                    document.getElementById('planner-event-type').value = data.eventType || 'General Event';
+
+                    // Update Dashboard Summary for Planner
+                    document.getElementById('planner-dashboard-event-name').textContent = data.eventName || 'N/A';
+                    document.getElementById('planner-dashboard-event-date').textContent = data.eventDate || 'N/A';
+                    document.getElementById('planner-dashboard-event-venue').textContent = data.eventVenue || 'N/A';
+
+                    // Render sub-collections (guests, tasks, vendors, expenses)
+                    window.renderPlannerGuests(data.guests || []);
+                    window.renderPlannerTasks(data.tasks || []);
+                    window.renderPlannerVendors(data.vendors || []);
+                    window.renderPlannerExpenses(data.expenses || []);
+
+                    // Set budget and update summary
+                    window.plannerTotalBudget = data.totalBudget || 0;
+                    window.updatePlannerBudgetSummary();
+
+                } else {
+                    console.log("No planner data found for this user. Initializing with empty data.");
+                    // Initialize document if it doesn't exist (optional, can be done on first save)
+                    // For now, just clear fields and set defaults if no data exists
+                    document.getElementById('planner-event-name').value = '';
+                    document.getElementById('planner-event-date').value = '';
+                    document.getElementById('planner-event-venue').value = '';
+                    document.getElementById('planner-event-type').value = 'General Event';
+
+                    window.renderPlannerGuests([]);
+                    window.renderPlannerTasks([]);
+                    window.renderPlannerVendors([]);
+                    window.renderPlannerExpenses([]);
+                    window.plannerTotalBudget = 0;
+                    window.updatePlannerBudgetSummary();
+                }
+            }, (error) => {
+                console.error("Error fetching planner data:", error);
+            });
+        };
+
+        /**
+         * Saves the entire planner data object to Firestore.
+         * This approach saves all sub-collections as arrays within a single document.
+         * For very large lists, separate sub-collections would be more scalable,
+         * but for typical event planning numbers, this is simpler to manage.
+         */
+        window.savePlannerDataToFirestore = async (dataToSave) => {
+            if (!db || !userId || !plannerDataRef) {
+                console.error("savePlannerDataToFirestore: Firestore, User ID, or plannerDataRef not ready. Cannot save.");
+                return;
+            }
+            try {
+                console.log("savePlannerDataToFirestore: Saving planner data:", dataToSave);
+                await setDoc(plannerDataRef, dataToSave, { merge: true }); // Use merge to update specific fields
+                console.log("savePlannerDataToFirestore: Planner data saved successfully.");
+            } catch (e) {
+                console.error("savePlannerDataToFirestore: Error saving planner data:", e);
+            }
+        };
+
+        // --- Planner-specific data arrays (will be updated from Firestore) ---
+        window.plannerGuests = [];
+        window.plannerTasks = [];
+        window.plannerVendors = [];
+        window.plannerExpenses = [];
+        window.plannerTotalBudget = 0;
+
+        // --- Planner-specific render functions (updated to use global planner arrays) ---
+        window.renderPlannerGuests = (guestsData) => {
+            window.plannerGuests = guestsData; // Update global array
+            const guestsList = document.getElementById('planner-guests-list');
+            guestsList.innerHTML = '';
+            if (window.plannerGuests.length === 0) {
+                guestsList.innerHTML = '<tr><td colspan="4" class="px-4 py-2 text-sm text-gray-500 text-center">No guests added yet.</td></tr>';
+            } else {
+                window.plannerGuests.forEach((guest, index) => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="px-4 py-2 text-sm text-gray-800">${guest.name}</td>
+                        <td class="px-4 py-2 text-sm text-gray-800">${guest.contact}</td>
+                        <td class="px-4 py-2 text-sm text-gray-800">${guest.rsvp}</td>
+                        <td class="px-4 py-2 text-sm text-gray-800">
+                            <button class="text-indigo-600 hover:text-indigo-900 mr-2 planner-edit-guest" data-index="${index}">Edit</button>
+                            <button class="text-red-600 hover:text-red-900 planner-delete-guest" data-index="${index}">Delete</button>
+                        </td>
+                    `;
+                    guestsList.appendChild(row);
+                });
+            }
+            window.updatePlannerDashboardSummary();
+        };
+
+        window.renderPlannerTasks = (tasksData) => {
+            window.plannerTasks = tasksData; // Update global array
+            const tasksList = document.getElementById('planner-tasks-list');
+            tasksList.innerHTML = '';
+            if (window.plannerTasks.length === 0) {
+                tasksList.innerHTML = '<tr><td colspan="4" class="px-4 py-2 text-sm text-gray-500 text-center">No tasks added yet.</td></tr>';
+            } else {
+                window.plannerTasks.forEach((task, index) => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="px-4 py-2 text-sm text-gray-800">${task.description}</td>
+                        <td class="px-4 py-2 text-sm text-gray-800">${task.dueDate}</td>
+                        <td class="px-4 py-2 text-sm text-gray-800">${task.status}</td>
+                        <td class="px-4 py-2 text-sm text-gray-800">
+                            <button class="text-indigo-600 hover:text-indigo-900 mr-2 planner-edit-task" data-index="${index}">Edit</button>
+                            <button class="text-red-600 hover:text-red-900 planner-delete-task" data-index="${index}">Delete</button>
+                        </td>
+                    `;
+                    tasksList.appendChild(row);
+                });
+            }
+            window.updatePlannerDashboardSummary();
+        };
+
+        window.renderPlannerVendors = (vendorsData) => {
+            window.plannerVendors = vendorsData; // Update global array
+            const vendorsList = document.getElementById('planner-vendors-list');
+            vendorsList.innerHTML = '';
+            if (window.plannerVendors.length === 0) {
+                vendorsList.innerHTML = '<tr><td colspan="5" class="px-4 py-2 text-sm text-gray-500 text-center">No vendors added yet.</td></tr>';
+            } else {
+                window.plannerVendors.forEach((vendor, index) => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="px-4 py-2 text-sm text-gray-800">${vendor.name}</td>
+                        <td class="px-4 py-2 text-sm text-gray-800">${vendor.service}</td>
+                        <td class="px-4 py-2 text-sm text-gray-800">${vendor.contact}</td>
+                        <td class="px-4 py-2 text-sm text-gray-800">$${parseFloat(vendor.cost).toFixed(2)}</td>
+                        <td class="px-4 py-2 text-sm text-gray-800">
+                            <button class="text-indigo-600 hover:text-indigo-900 mr-2 planner-edit-vendor" data-index="${index}">Edit</button>
+                            <button class="text-red-600 hover:text-red-900 planner-delete-vendor" data-index="${index}">Delete</button>
+                        </td>
+                    `;
+                    vendorsList.appendChild(row);
+                });
+            }
+            window.updatePlannerBudgetSummary(); // Vendors affect budget
+        };
+
+        window.renderPlannerExpenses = (expensesData) => {
+            window.plannerExpenses = expensesData; // Update global array
+            const expensesList = document.getElementById('planner-expenses-list');
+            expensesList.innerHTML = '';
+            if (window.plannerExpenses.length === 0) {
+                expensesList.innerHTML = '<tr><td colspan="4" class="px-4 py-2 text-sm text-gray-500 text-center">No expenses added yet.</td></tr>';
+            } else {
+                window.plannerExpenses.forEach((expense, index) => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="px-4 py-2 text-sm text-gray-800">${expense.item}</td>
+                        <td class="px-4 py-2 text-sm text-gray-800">$${parseFloat(expense.amount).toFixed(2)}</td>
+                        <td class="px-4 py-2 text-sm text-gray-800">${expense.category}</td>
+                        <td class="px-4 py-2 text-sm text-gray-800">
+                            <button class="text-indigo-600 hover:text-indigo-900 mr-2 planner-edit-expense" data-index="${index}">Edit</button>
+                            <button class="text-red-600 hover:text-red-900 planner-delete-expense" data-index="${index}">Delete</button>
+                        </td>
+                    `;
+                    expensesList.appendChild(row);
+                });
+            }
+            window.updatePlannerBudgetSummary(); // Expenses affect budget
+        };
+
+        window.updatePlannerBudgetSummary = () => {
+            const totalExpenses = window.plannerExpenses.reduce((sum, expense) => sum + expense.amount, 0) +
+                                  window.plannerVendors.reduce((sum, vendor) => sum + vendor.cost, 0); // Include vendor costs
+            const remainingBudget = window.plannerTotalBudget - totalExpenses;
+
+            document.getElementById('planner-total-budget').textContent = `$${window.plannerTotalBudget.toFixed(2)}`;
+            document.getElementById('planner-budget-total-expenses').textContent = `$${totalExpenses.toFixed(2)}`;
+            document.getElementById('planner-budget-remaining-budget').textContent = `$${remainingBudget.toFixed(2)}`;
+
+            document.getElementById('planner-dashboard-total-expenses').textContent = `$${totalExpenses.toFixed(2)}`;
+            document.getElementById('planner-dashboard-remaining-budget').textContent = `$${remainingBudget.toFixed(2)}`;
+
+            const budgetRemainingBudgetSpan = document.getElementById('planner-budget-remaining-budget');
+            if (remainingBudget < 0) {
+                budgetRemainingBudgetSpan.classList.remove('text-green-600');
+                budgetRemainingBudgetSpan.classList.add('text-red-600');
+            } else {
+                budgetRemainingBudgetSpan.classList.remove('text-red-600');
+                budgetRemainingBudgetSpan.classList.add('text-green-600');
+            }
+        };
+
+        window.updatePlannerDashboardSummary = () => {
+            const totalGuests = window.plannerGuests.length;
+            const confirmedGuests = window.plannerGuests.filter(g => g.rsvp === 'Confirmed').length;
+            const pendingGuests = window.plannerGuests.filter(g => g.rsvp === 'Pending').length;
+
+            document.getElementById('planner-dashboard-total-guests').textContent = totalGuests;
+            document.getElementById('planner-dashboard-rsvp-confirmed').textContent = confirmedGuests;
+            document.getElementById('planner-dashboard-rsvp-pending').textContent = pendingGuests;
+
+            const totalTasks = window.plannerTasks.length;
+            const completedTasks = window.plannerTasks.filter(t => t.status === 'Completed').length;
+            const pendingTasks = totalTasks - completedTasks;
+
+            document.getElementById('planner-dashboard-total-tasks').textContent = totalTasks;
+            document.getElementById('planner-dashboard-tasks-completed').textContent = completedTasks;
+            document.getElementById('planner-dashboard-tasks-pending').textContent = pendingTasks;
+        };
+
+
+    </script>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- Main App Section Toggling ---
+            const mainContentSections = document.querySelectorAll('#main-content-sections > section');
+            const eventPlannerSection = document.getElementById('event-planner-section');
+            const homeSection = document.getElementById('home-section'); // Renamed hero-section
+            const featuresSection = document.getElementById('features');
+            const dashboardSection = document.getElementById('dashboard');
+            const registrationSection = document.getElementById('registration'); // Original registration form (still hidden)
+            const communicationSection = document.getElementById('communication'); // Hidden by default
+            const venueVendorSection = document.getElementById('venue-vendor'); // Hidden by default
+            const reportingAnalyticsSection = document.getElementById('reporting-analytics'); // Hidden by default
+            const teamSection = document.getElementById('team');
+            const connectSection = document.getElementById('connect'); // Renamed contact section
+
+            // Define which sections belong to the "main page" view
+            const mainPageSections = [
+                'home-section',
+                'features',
+                'dashboard',
+                'team',
+                'connect' // Changed from 'contact'
+            ];
+
+            // Function to show a specific set of sections and hide all others
+            function showSections(sectionIdsToShow) {
+                mainContentSections.forEach(section => {
+                    if (sectionIdsToShow.includes(section.id)) {
+                        section.classList.remove('hidden');
+                    } else {
+                        section.classList.add('hidden');
+                    }
+                });
+            }
+
+            // Initial state: show main page sections
+            showSections(mainPageSections);
+
+            // Update navigation links to use showSections
+            document.querySelectorAll('#desktop-menu a, #mobile-menu-dropdown a, #home-link-logo').forEach(link => {
+                // Prevent default anchor behavior, handle manually
+                if (link.id !== 'auth-button' && link.id !== 'auth-button-mobile') { // Exclude auth buttons
+                    link.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const targetId = link.getAttribute('href').substring(1); // Get section ID from href
+
+                        if (targetId === 'event-planner-section') {
+                            showSections(['event-planner-section']); // Only show planner
+                        } else {
+                            // For other links, show the main page sections
+                            showSections(mainPageSections);
+                            // Scroll to the specific target on the main page
+                            const targetElement = document.getElementById(targetId);
+                            if (targetElement) {
+                                targetElement.scrollIntoView({ behavior: 'smooth' });
+                            }
+                        }
+
+                        // Close mobile menu if open
+                        mobileMenuDropdown.classList.add('hidden');
+                    });
+                }
+            });
+
+            // --- Mobile Menu Toggle Logic ---
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenuDropdown = document.getElementById('mobile-menu-dropdown');
+
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenuDropdown.classList.toggle('hidden');
+            });
+
+            // --- Event Dashboard & Modals Logic (for main app events) ---
+            const addEventButton = document.getElementById('add-event-button');
+            const eventDetailModal = document.getElementById('event-detail-modal');
+            const modalContent = document.getElementById('modal-content');
+            const closeModalButton = document.getElementById('close-modal-button');
+            const cancelEventFormButton = document.getElementById('cancel-event-form');
+            const eventForm = document.getElementById('event-form');
+            const modalTitle = document.getElementById('modal-title');
+
+            const confirmationModal = document.getElementById('confirmation-modal');
+            const confirmationModalContent = document.getElementById('confirmation-modal-content');
+            const closeConfirmationModalButton = document.getElementById('close-confirmation-modal-button');
+            const cancelDeleteButton = document.getElementById('cancel-delete-button');
+            const confirmDeleteButton = document.getElementById('confirm-delete-button');
+
+            const authButton = document.getElementById('auth-button');
+            const authButtonMobile = document.getElementById('auth-button-mobile');
+            const signInModal = document.getElementById('signin-modal');
+            const signInModalContent = document.getElementById('signin-modal-content');
+            const closeSignInModalButton = document.getElementById('close-signin-modal-button');
+            const signInForm = document.getElementById('signin-form');
+            const showSignUpLink = document.getElementById('show-signup-link');
+            const signInMessage = document.getElementById('signin-message');
+
+            const signUpModal = document.getElementById('signup-modal');
+            const signUpModalContent = document.getElementById('signup-modal-content');
+            const closeSignUpModalButton = document.getElementById('close-signup-modal-button');
+            const signUpForm = document.getElementById('signup-form');
+            const showSignInLink = document.getElementById('show-signin-link');
+            const signUpMessage = document.getElementById('signup-message');
+
+            const registrationForm = document.getElementById('registration-form'); // Original registration form (still hidden)
+            const registrationMessage = document.getElementById('registration-message');
+            const downloadRegistrationsButton = document.getElementById('download-registrations-button');
+
+
+            let editingEventCard = null;
+            let eventCardToDelete = null;
+
+            window.openModal = (title = 'Add New Event') => {
+                if (!window.firebaseAuth || !window.firebaseAuth.currentUser) {
+                    console.warn("openModal: User not authenticated. Opening sign-in modal.");
+                    window.openSignInModal();
+                    return;
+                }
+                modalTitle.textContent = title;
+                eventDetailModal.classList.remove('hidden');
+                void modalContent.offsetWidth;
+                modalContent.classList.remove('opacity-0', 'scale-95');
+                modalContent.classList.add('opacity-100', 'scale-100');
+            };
+
+            const closeModal = () => {
+                modalContent.classList.remove('opacity-100', 'scale-100');
+                modalContent.classList.add('opacity-0', 'scale-95');
+                modalContent.addEventListener('transitionend', () => {
+                    eventDetailModal.classList.add('hidden');
+                    eventForm.reset();
+                    editingEventCard = null;
+                }, { once: true });
+            };
+
+            window.openConfirmationModal = () => {
+                confirmationModal.classList.remove('hidden');
+                void confirmationModalContent.offsetWidth;
+                confirmationModalContent.classList.remove('opacity-0', 'scale-95');
+                confirmationModalContent.classList.add('opacity-100', 'scale-100');
+            };
+
+            const closeConfirmationModal = () => {
+                confirmationModalContent.classList.remove('opacity-100', 'scale-100');
+                confirmationModalContent.classList.add('opacity-0', 'scale-95');
+                confirmationModalContent.addEventListener('transitionend', () => {
+                    confirmationModal.classList.add('hidden');
+                    eventCardToDelete = null;
+                }, { once: true });
+            };
+
+            window.openSignInModal = () => {
+                signInModal.classList.remove('hidden');
+                void signInModalContent.offsetWidth;
+                signInModalContent.classList.remove('opacity-0', 'scale-95');
+                signInModalContent.classList.add('opacity-100', 'scale-100');
+                signInMessage.classList.add('hidden');
+                signInForm.reset();
+            };
+
+            window.closeSignInModal = () => {
+                signInModalContent.classList.remove('opacity-100', 'scale-100');
+                signInModalContent.classList.add('opacity-0', 'scale-95');
+                signInModalContent.addEventListener('transitionend', () => {
+                    signInModal.classList.add('hidden');
+                }, { once: true });
+            };
+
+            window.openSignUpModal = () => {
+                signUpModal.classList.remove('hidden');
+                void signUpModalContent.offsetWidth;
+                signUpModalContent.classList.remove('opacity-0', 'scale-95');
+                signUpModalContent.classList.add('opacity-100', 'scale-100');
+                signUpMessage.classList.add('hidden');
+                signUpForm.reset();
+            };
+
+            window.closeSignUpModal = () => {
+                signUpModalContent.classList.remove('opacity-100', 'scale-100');
+                signUpModalContent.classList.add('opacity-0', 'scale-95');
+                signUpModalContent.addEventListener('transitionend', () => {
+                    signUpModal.classList.add('hidden');
+                }, { once: true });
+            };
+
+            addEventButton.addEventListener('click', () => {
+                window.openModal('Add New Event');
+                eventForm.reset();
+            });
+
+            closeModalButton.addEventListener('click', closeModal);
+            cancelEventFormButton.addEventListener('click', closeModal);
+            eventDetailModal.addEventListener('click', (e) => {
+                if (e.target === eventDetailModal) {
+                    closeModal();
+                }
+            });
+
+            closeConfirmationModalButton.addEventListener('click', closeConfirmationModal);
+            cancelDeleteButton.addEventListener('click', closeConfirmationModal);
+            confirmDeleteButton.addEventListener('click', () => {
+                if (eventCardToDelete) {
+                    const eventId = eventCardToDelete.dataset.eventId;
+                    if (eventId) {
+                        window.deleteEventFromFirestore(eventId);
+                    }
+                    closeConfirmationModal();
+                }
+            });
+            confirmationModal.addEventListener('click', (e) => {
+                if (e.target === confirmationModal) {
+                    closeConfirmationModal();
+                }
+            });
+
+            authButton.addEventListener('click', () => {
+                if (authButton.textContent === 'Sign In') {
+                    window.openSignInModal();
+                } else {
+                    window.handleSignOut();
+                }
+            });
+            authButtonMobile.addEventListener('click', () => {
+                if (authButtonMobile.textContent === 'Sign In') {
+                    window.openSignInModal();
+                } else {
+                    window.handleSignOut();
+                }
+            });
+
+            closeSignInModalButton.addEventListener('click', window.closeSignInModal);
+            signInModal.addEventListener('click', (e) => {
+                if (e.target === signInModal) {
+                    window.closeSignInModal();
+                }
+            });
+            signInForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = document.getElementById('signin-email').value;
+                const password = document.getElementById('signin-password').value;
+                await window.handleSignIn(email, password);
+            });
+            showSignUpLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                window.closeSignInModal();
+                window.openSignUpModal();
+            });
+
+            closeSignUpModalButton.addEventListener('click', window.closeSignUpModal);
+            signUpModal.addEventListener('click', (e) => {
+                if (e.target === signUpModal) {
+                    window.closeSignUpModal();
+                }
+            });
+            signUpForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = document.getElementById('signup-email').value;
+                const password = document.getElementById('signup-password').value;
+                await window.handleSignUp(email, password);
+            });
+            showSignInLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                window.closeSignUpModal();
+                window.openSignInModal();
+            });
+
+            eventForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                if (!window.firebaseAuth || !window.firebaseAuth.currentUser) {
+                    window.openSignInModal();
+                    return;
+                }
+
+                const eventName = document.getElementById('event-name').value;
+                const eventDate = document.getElementById('event-date').value;
+                const eventDescription = document.getElementById('event-description').value;
+                const eventAttendees = parseInt(document.getElementById('event-attendees').value);
+                const eventStatus = document.getElementById('event-status').value;
+
+                if (!eventName || !eventDate || !eventDescription || isNaN(eventAttendees) || eventAttendees < 1) {
+                    return;
+                }
+
+                const eventData = { eventName, eventDate, eventDescription, maxAttendees: eventAttendees, eventStatus };
+                const eventId = editingEventCard ? editingEventCard.dataset.eventId : null;
+                await window.saveEventToFirestore(eventData, eventId);
+                closeModal();
+            });
+
+            window.handleEditClick = (e) => {
+                if (!window.firebaseAuth || !window.firebaseAuth.currentUser) {
+                    window.openSignInModal();
+                    return;
+                }
+                editingEventCard = e.target.closest('.bg-white');
+                const eventId = editingEventCard.dataset.eventId;
+
+                const eventName = editingEventCard.querySelector('h3').textContent;
+                const eventDate = editingEventCard.querySelector('p:nth-of-type(1)').textContent.replace('Date: ', '');
+                const eventDescription = editingEventCard.querySelector('p:nth-of-type(2)').textContent;
+                const attendeesText = editingEventCard.querySelector('.text-sm.text-gray-500 span:nth-of-type(1)').textContent;
+                const maxAttendees = attendeesText.split('/')[1] ? parseInt(attendeesText.split('/')[1].trim()) : 0;
+                const eventStatus = editingEventCard.querySelector('.text-sm.text-gray-500 span:nth-of-type(2) span').textContent;
+
+                document.getElementById('event-name').value = eventName;
+                document.getElementById('event-date').value = eventDate;
+                document.getElementById('event-description').value = eventDescription;
+                document.getElementById('event-attendees').value = maxAttendees;
+                document.getElementById('event-status').value = eventStatus;
+
+                window.openModal('Edit Event');
+            };
+
+            window.handleDeleteClick = (e) => {
+                if (!window.firebaseAuth || !window.firebaseAuth.currentUser) {
+                    window.openSignInModal();
+                    return;
+                }
+                eventCardToDelete = e.target.closest('.bg-white');
+                const eventId = eventCardToDelete.dataset.eventId;
+                window.openConfirmationModal();
+            };
+
+            // Original Registration Form (now hidden)
+            registrationForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                if (!window.firebaseAuth || !window.firebaseAuth.currentUser) {
+                    registrationMessage.classList.remove('hidden', 'text-green-600');
+                    registrationMessage.classList.add('text-red-600');
+                    registrationMessage.textContent = 'Please sign in to register for an event.';
+                    window.openSignInModal();
+                    return;
+                }
+
+                const selectedEventId = document.getElementById('reg-event-select').value;
+                const selectedEventName = document.getElementById('reg-event-select').options[document.getElementById('reg-event-select').selectedIndex].text;
+                const fullName = document.getElementById('reg-name').value;
+                const email = document.getElementById('reg-email').value;
+                const numTickets = parseInt(document.getElementById('reg-tickets').value);
+
+                if (!selectedEventId || !fullName || !email || isNaN(numTickets) || numTickets < 1) {
+                    registrationMessage.classList.remove('hidden', 'text-green-600');
+                    registrationMessage.classList.add('text-red-600');
+                    registrationMessage.textContent = 'Please fill in all registration fields correctly.';
+                    return;
+                }
+
+                const registrationData = { eventId: selectedEventId, eventName: selectedEventName, fullName: fullName, email: email, numTickets: numTickets };
+                const success = await window.saveRegistrationToFirestore(registrationData);
+
+                if (success) {
+                    registrationMessage.classList.remove('hidden', 'text-red-600');
+                    registrationMessage.classList.add('text-green-600');
+                    registrationMessage.textContent = `Thank you, ${fullName}! You have successfully registered for ${selectedEventName} with ${numTickets} ticket(s).`;
+                    registrationForm.reset();
+                } else {
+                    registrationMessage.classList.remove('hidden', 'text-green-600');
+                    registrationMessage.classList.add('text-red-600');
+                    registrationMessage.textContent = 'Failed to register. Please try again.';
+                }
+            });
+
+            downloadRegistrationsButton.addEventListener('click', () => {
+                if (!window.firebaseAuth || !window.firebaseAuth.currentUser) {
+                    const registrationMessage = document.getElementById('registration-message');
+                    registrationMessage.classList.remove('hidden', 'text-green-600');
+                    registrationMessage.classList.add('text-red-600');
+                    registrationMessage.textContent = 'Please sign in to download registrations.';
+                    window.openSignInModal();
+                    return;
+                }
+
+                if (window.allRegistrations && window.allRegistrations.length > 0) {
+                    window.exportToCsv(window.allRegistrations, 'event_registrations.csv');
+                } else {
+                    const registrationMessage = document.getElementById('registration-message');
+                    registrationMessage.classList.remove('hidden', 'text-green-600');
+                    registrationMessage.classList.add('text-red-600');
+                    registrationMessage.textContent = 'No registration data available to download.';
+                    setTimeout(() => registrationMessage.classList.add('hidden'), 3000);
+                }
+            });
+
+            // --- Event Planner Section (from Yo.html) Logic ---
+            const plannerTabButtons = document.querySelectorAll('#event-planner-section .tab-button');
+            const plannerTabContents = document.querySelectorAll('#event-planner-section .tab-content');
+            const plannerLoadingIndicator = document.getElementById('planner-loading-indicator');
+
+            function showPlannerTab(tabId) {
+                plannerLoadingIndicator.classList.remove('hidden');
+                plannerLoadingIndicator.classList.add('flex');
+
+                setTimeout(() => {
+                    plannerTabContents.forEach(content => {
+                        content.classList.add('hidden');
+                    });
+                    plannerTabButtons.forEach(button => {
+                        button.classList.remove('active');
+                    });
+
+                    document.getElementById(tabId).classList.remove('hidden');
+                    document.getElementById(`planner-${tabId.replace('planner-', '').replace('-section', '')}`).classList.add('active');
+
+                    plannerLoadingIndicator.classList.add('hidden');
+                    plannerLoadingIndicator.classList.remove('flex');
+                }, 300);
+            }
+
+            plannerTabButtons.forEach(button => {
+                button.addEventListener('click', (event) => {
+                    const tabId = event.target.id.replace('planner-tab-', 'planner-') + '-section';
+                    showPlannerTab(tabId);
+                });
+            });
+
+            // Initial planner tab display
+            showPlannerTab('planner-dashboard-section');
+
+            // --- Event Details Form (Planner) ---
+            const plannerEventDetailsForm = document.getElementById('planner-event-details-form');
+            plannerEventDetailsForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                if (!window.firebaseAuth || !window.firebaseAuth.currentUser) {
+                    window.openSignInModal();
+                    return;
+                }
+                const eventName = document.getElementById('planner-event-name').value;
+                const eventDate = document.getElementById('planner-event-date').value;
+                const eventVenue = document.getElementById('planner-event-venue').value;
+                const eventType = document.getElementById('planner-event-type').value;
+
+                const plannerData = { eventName, eventDate, eventVenue, eventType };
+                await window.savePlannerDataToFirestore(plannerData);
+            });
+
+            // --- Guests Section (Planner) ---
+            const plannerAddGuestForm = document.getElementById('planner-add-guest-form');
+            const plannerGuestsList = document.getElementById('planner-guests-list');
+
+            plannerAddGuestForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                if (!window.firebaseAuth || !window.firebaseAuth.currentUser) {
+                    window.openSignInModal();
+                    return;
+                }
+                const guestName = document.getElementById('planner-guest-name').value;
+                const guestContact = document.getElementById('planner-guest-contact').value;
+                const guestRsvp = document.getElementById('planner-guest-rsvp').value;
+
+                const newGuest = { name: guestName, contact: guestContact, rsvp: guestRsvp };
+                window.plannerGuests.push(newGuest);
+                await window.savePlannerDataToFirestore({ guests: window.plannerGuests });
+                plannerAddGuestForm.reset();
+            });
+
+            plannerGuestsList.addEventListener('click', async (event) => {
+                if (!window.firebaseAuth || !window.firebaseAuth.currentUser) {
+                    window.openSignInModal();
+                    return;
+                }
+                if (event.target.classList.contains('planner-delete-guest')) {
+                    const index = event.target.dataset.index;
+                    window.plannerGuests.splice(index, 1);
+                    await window.savePlannerDataToFirestore({ guests: window.plannerGuests });
+                } else if (event.target.classList.contains('planner-edit-guest')) {
+                    const index = event.target.dataset.index;
+                    window.openPlannerEditModal('guest', index, window.plannerGuests[index]);
+                }
+            });
+
+            // --- Tasks Section (Planner) ---
+            const plannerAddTaskForm = document.getElementById('planner-add-task-form');
+            const plannerTasksList = document.getElementById('planner-tasks-list');
+
+            plannerAddTaskForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                if (!window.firebaseAuth || !window.firebaseAuth.currentUser) {
+                    window.openSignInModal();
+                    return;
+                }
+                const taskDescription = document.getElementById('planner-task-description').value;
+                const taskDueDate = document.getElementById('planner-task-due-date').value;
+                const taskStatus = document.getElementById('planner-task-status').value;
+
+                const newTask = { description: taskDescription, dueDate: taskDueDate, status: taskStatus };
+                window.plannerTasks.push(newTask);
+                await window.savePlannerDataToFirestore({ tasks: window.plannerTasks });
+                plannerAddTaskForm.reset();
+            });
+
+            plannerTasksList.addEventListener('click', async (event) => {
+                if (!window.firebaseAuth || !window.firebaseAuth.currentUser) {
+                    window.openSignInModal();
+                    return;
+                }
+                if (event.target.classList.contains('planner-delete-task')) {
+                    const index = event.target.dataset.index;
+                    window.plannerTasks.splice(index, 1);
+                    await window.savePlannerDataToFirestore({ tasks: window.plannerTasks });
+                } else if (event.target.classList.contains('planner-edit-task')) {
+                    const index = event.target.dataset.index;
+                    window.openPlannerEditModal('task', index, window.plannerTasks[index]);
+                }
+            });
+
+            // --- Vendors Section (Planner) ---
+            const plannerAddVendorForm = document.getElementById('planner-add-vendor-form');
+            const plannerVendorsList = document.getElementById('planner-vendors-list');
+
+            plannerAddVendorForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                if (!window.firebaseAuth || !window.firebaseAuth.currentUser) {
+                    window.openSignInModal();
+                    return;
+                }
+                const vendorName = document.getElementById('planner-vendor-name').value;
+                const vendorService = document.getElementById('planner-vendor-service').value;
+                const vendorContact = document.getElementById('planner-vendor-contact').value;
+                const vendorCost = parseFloat(document.getElementById('planner-vendor-cost').value);
+
+                const newVendor = { name: vendorName, service: vendorService, contact: vendorContact, cost: vendorCost };
+                window.plannerVendors.push(newVendor);
+                await window.savePlannerDataToFirestore({ vendors: window.plannerVendors });
+                plannerAddVendorForm.reset();
+            });
+
+            plannerVendorsList.addEventListener('click', async (event) => {
+                if (!window.firebaseAuth || !window.firebaseAuth.currentUser) {
+                    window.openSignInModal();
+                    return;
+                }
+                if (event.target.classList.contains('planner-delete-vendor')) {
+                    const index = event.target.dataset.index;
+                    window.plannerVendors.splice(index, 1);
+                    await window.savePlannerDataToFirestore({ vendors: window.plannerVendors });
+                } else if (event.target.classList.contains('planner-edit-vendor')) {
+                    const index = event.target.dataset.index;
+                    window.openPlannerEditModal('vendor', index, window.plannerVendors[index]);
+                }
+            });
+
+            // --- Budget Section (Planner) ---
+            const plannerAddExpenseForm = document.getElementById('planner-add-expense-form');
+            const plannerExpensesList = document.getElementById('planner-expenses-list');
+            const plannerSetTotalBudgetButton = document.getElementById('planner-set-total-budget-button');
+            const plannerSetBudgetModal = document.getElementById('planner-set-budget-modal');
+            const plannerNewTotalBudgetInput = document.getElementById('planner-new-total-budget');
+            const plannerSaveBudgetSetButton = document.getElementById('planner-save-budget-set');
+            const plannerCancelBudgetSetButton = document.getElementById('planner-cancel-budget-set');
+
+            plannerAddExpenseForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                if (!window.firebaseAuth || !window.firebaseAuth.currentUser) {
+                    window.openSignInModal();
+                    return;
+                }
+                const expenseItem = document.getElementById('planner-expense-item').value;
+                const expenseAmount = parseFloat(document.getElementById('planner-expense-amount').value);
+                const expenseCategory = document.getElementById('planner-expense-category').value;
+
+                const newExpense = { item: expenseItem, amount: expenseAmount, category: expenseCategory };
+                window.plannerExpenses.push(newExpense);
+                await window.savePlannerDataToFirestore({ expenses: window.plannerExpenses });
+                plannerAddExpenseForm.reset();
+            });
+
+            plannerExpensesList.addEventListener('click', async (event) => {
+                if (!window.firebaseAuth || !window.firebaseAuth.currentUser) {
+                    window.openSignInModal();
+                    return;
+                }
+                if (event.target.classList.contains('planner-delete-expense')) {
+                    const index = event.target.dataset.index;
+                    window.plannerExpenses.splice(index, 1);
+                    await window.savePlannerDataToFirestore({ expenses: window.plannerExpenses });
+                } else if (event.target.classList.contains('planner-edit-expense')) {
+                    const index = event.target.dataset.index;
+                    window.openPlannerEditModal('expense', index, window.plannerExpenses[index]);
+                }
+            });
+
+            plannerSetTotalBudgetButton.addEventListener('click', () => {
+                if (!window.firebaseAuth || !window.firebaseAuth.currentUser) {
+                    window.openSignInModal();
+                    return;
+                }
+                plannerSetBudgetModal.classList.remove('hidden');
+                plannerNewTotalBudgetInput.value = window.plannerTotalBudget.toFixed(2);
+            });
+
+            plannerCancelBudgetSetButton.addEventListener('click', () => {
+                plannerSetBudgetModal.classList.add('hidden');
+            });
+
+            plannerSaveBudgetSetButton.addEventListener('click', async () => {
+                if (!window.firebaseAuth || !window.firebaseAuth.currentUser) {
+                    window.openSignInModal();
+                    return;
+                }
+                const newBudget = parseFloat(plannerNewTotalBudgetInput.value);
+                if (!isNaN(newBudget) && newBudget >= 0) {
+                    window.plannerTotalBudget = newBudget;
+                    await window.savePlannerDataToFirestore({ totalBudget: window.plannerTotalBudget });
+                    plannerSetBudgetModal.classList.add('hidden');
+                } else {
+                    // Replaced alert with a simple console error for Canvas environment
+                    console.error('Please enter a valid positive number for the budget.');
+                }
+            });
+
+            // --- Generic Edit Modal (Planner) ---
+            const plannerEditModal = document.getElementById('planner-edit-modal');
+            const plannerEditModalTitle = document.getElementById('planner-edit-modal-title');
+            const plannerEditForm = document.getElementById('planner-edit-form');
+            const plannerSaveEditButton = document.getElementById('planner-save-edit');
+            const plannerCancelEditButton = document.getElementById('planner-cancel-edit');
+
+            let plannerCurrentEditType = null;
+            let plannerCurrentEditIndex = -1;
+
+            window.openPlannerEditModal = (type, index, data) => { // Made global
+                plannerCurrentEditType = type;
+                plannerCurrentEditIndex = index;
+                plannerEditForm.innerHTML = '';
+
+                plannerEditModalTitle.textContent = `Edit ${type.charAt(0).toUpperCase() + type.slice(1)}`;
+
+                if (type === 'guest') {
+                    plannerEditForm.innerHTML = `
+                        <div>
+                            <label for="edit-guest-name" class="block text-sm font-medium text-gray-700">Guest Name</label>
+                            <input type="text" id="edit-guest-name" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" value="${data.name}" required>
+                        </div>
+                        <div>
+                            <label for="edit-guest-contact" class="block text-sm font-medium text-gray-700">Contact Info</label>
+                            <input type="text" id="edit-guest-contact" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" value="${data.contact}">
+                        </div>
+                        <div>
+                            <label for="edit-guest-rsvp" class="block text-sm font-medium text-gray-700">RSVP Status</label>
+                            <select id="edit-guest-rsvp" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                                <option value="Pending" ${data.rsvp === 'Pending' ? 'selected' : ''}>Pending</option>
+                                <option value="Confirmed" ${data.rsvp === 'Confirmed' ? 'selected' : ''}>Confirmed</option>
+                                <option value="Declined" ${data.rsvp === 'Declined' ? 'selected' : ''}>Declined</option>
+                            </select>
+                        </div>
+                    `;
+                } else if (type === 'task') {
+                    plannerEditForm.innerHTML = `
+                        <div>
+                            <label for="edit-task-description" class="block text-sm font-medium text-gray-700">Task Description</label>
+                            <input type="text" id="edit-task-description" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" value="${data.description}" required>
+                        </div>
+                        <div>
+                            <label for="edit-task-due-date" class="block text-sm font-medium text-gray-700">Due Date</label>
+                            <input type="date" id="edit-task-due-date" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" value="${data.dueDate}">
+                        </div>
+                        <div>
+                            <label for="edit-task-status" class="block text-sm font-medium text-gray-700">Status</label>
+                            <select id="edit-task-status" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                                <option value="Pending" ${data.status === 'Pending' ? 'selected' : ''}>Pending</option>
+                                <option value="In Progress" ${data.status === 'In Progress' ? 'selected' : ''}>In Progress</option>
+                                <option value="Completed" ${data.status === 'Completed' ? 'selected' : ''}>Completed</option>
+                            </select>
+                        </div>
+                    `;
+                } else if (type === 'vendor') {
+                    plannerEditForm.innerHTML = `
+                        <div>
+                            <label for="edit-vendor-name" class="block text-sm font-medium text-gray-700">Vendor Name</label>
+                            <input type="text" id="edit-vendor-name" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" value="${data.name}" required>
+                        </div>
+                        <div>
+                            <label for="edit-vendor-service" class="block text-sm font-medium text-gray-700">Service</label>
+                            <input type="text" id="edit-vendor-service" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" value="${data.service}">
+                        </div>
+                        <div>
+                            <label for="edit-vendor-contact" class="block text-sm font-medium text-gray-700">Contact Info</label>
+                            <input type="text" id="edit-vendor-contact" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" value="${data.contact}">
+                        </div>
+                        <div>
+                            <label for="edit-vendor-cost" class="block text-sm font-medium text-gray-700">Cost ($)</label>
+                            <input type="number" id="edit-vendor-cost" step="0.01" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" value="${data.cost.toFixed(2)}">
+                        </div>
+                    `;
+                } else if (type === 'expense') {
+                    plannerEditForm.innerHTML = `
+                        <div>
+                            <label for="edit-expense-item" class="block text-sm font-medium text-gray-700">Expense Item</label>
+                            <input type="text" id="edit-expense-item" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" value="${data.item}" required>
+                        </div>
+                        <div>
+                            <label for="edit-expense-amount" class="block text-sm font-medium text-gray-700">Amount ($)</label>
+                            <input type="number" id="edit-expense-amount" step="0.01" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" value="${data.amount.toFixed(2)}" required>
+                        </div>
+                        <div>
+                            <label for="edit-expense-category" class="block text-sm font-medium text-gray-700">Category</label>
+                            <select id="edit-expense-category" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                                <option value="Food" ${data.category === 'Food' ? 'selected' : ''}>Food</option>
+                                <option value="Venue" ${data.category === 'Venue' ? 'selected' : ''}>Venue</option>
+                                <option value="Decorations" ${data.category === 'Decorations' ? 'selected' : ''}>Decorations</option>
+                                <option value="Entertainment" ${data.category === 'Entertainment' ? 'selected' : ''}>Entertainment</option>
+                                <option value="Other" ${data.category === 'Other' ? 'selected' : ''}>Other</option>
+                            </select>
+                        </div>
+                    `;
+                }
+
+                plannerEditModal.classList.remove('hidden');
+            };
+
+            plannerSaveEditButton.addEventListener('click', async () => {
+                if (!window.firebaseAuth || !window.firebaseAuth.currentUser) {
+                    window.openSignInModal();
+                    return;
+                }
+                if (plannerCurrentEditType === 'guest') {
+                    window.plannerGuests[plannerCurrentEditIndex] = {
+                        name: document.getElementById('edit-guest-name').value,
+                        contact: document.getElementById('edit-guest-contact').value,
+                        rsvp: document.getElementById('edit-guest-rsvp').value
+                    };
+                    await window.savePlannerDataToFirestore({ guests: window.plannerGuests });
+                } else if (plannerCurrentEditType === 'task') {
+                    window.plannerTasks[plannerCurrentEditIndex] = {
+                        description: document.getElementById('edit-task-description').value,
+                        dueDate: document.getElementById('edit-task-due-date').value,
+                        status: document.getElementById('edit-task-status').value
+                    };
+                    await window.savePlannerDataToFirestore({ tasks: window.plannerTasks });
+                } else if (plannerCurrentEditType === 'vendor') {
+                    window.plannerVendors[plannerCurrentEditIndex] = {
+                        name: document.getElementById('edit-vendor-name').value,
+                        service: document.getElementById('edit-vendor-service').value,
+                        contact: document.getElementById('edit-vendor-contact').value,
+                        cost: parseFloat(document.getElementById('edit-vendor-cost').value)
+                    };
+                    await window.savePlannerDataToFirestore({ vendors: window.plannerVendors });
+                } else if (plannerCurrentEditType === 'expense') {
+                    window.plannerExpenses[plannerCurrentEditIndex] = {
+                        item: document.getElementById('edit-expense-item').value,
+                        amount: parseFloat(document.getElementById('edit-expense-amount').value),
+                        category: document.getElementById('edit-expense-category').value
+                    };
+                    await window.savePlannerDataToFirestore({ expenses: window.plannerExpenses });
+                }
+                plannerEditModal.classList.add('hidden');
+            });
+
+            plannerCancelEditButton.addEventListener('click', () => {
+                plannerEditModal.classList.add('hidden');
+            });
+
+            // Ensure Planner modals close when clicking outside
+            plannerSetBudgetModal.addEventListener('click', (e) => {
+                if (e.target === plannerSetBudgetModal) {
+                    plannerSetBudgetModal.classList.add('hidden');
+                }
+            });
+            plannerEditModal.addEventListener('click', (e) => {
+                if (e.target === plannerEditModal) {
+                    plannerEditModal.classList.add('hidden');
+                }
+            });
+
+        });
+    </script>
+    <script>
+        // --- Image Slider Logic ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const slider = document.getElementById('image-slider');
+            if(slider) {
+                const slides = slider.querySelectorAll('.slide');
+                const prevBtn = document.getElementById('slider-prev');
+                const nextBtn = document.getElementById('slider-next');
+                const dotsContainer = document.getElementById('slider-dots');
+
+                let currentSlide = 0;
+                let slideInterval;
+
+                function createDots() {
+                    slides.forEach((_, i) => {
+                        const dot = document.createElement('button');
+                        dot.classList.add('slider-dot');
+                        dot.setAttribute('aria-label', `Go to slide ${i + 1}`);
+                        dot.addEventListener('click', () => {
+                            goToSlide(i);
+                            resetInterval();
+                        });
+                        dotsContainer.appendChild(dot);
+                    });
+                }
+
+                function updateDots() {
+                    const dots = dotsContainer.querySelectorAll('.slider-dot');
+                    dots.forEach((dot, i) => {
+                        dot.classList.toggle('active', i === currentSlide);
+                    });
+                }
+
+                function goToSlide(slideIndex) {
+                    slides[currentSlide].classList.remove('active');
+                    currentSlide = (slideIndex + slides.length) % slides.length;
+                    slides[currentSlide].classList.add('active');
+                    updateDots();
+                }
+
+                function nextSlide() {
+                    goToSlide(currentSlide + 1);
+                }
+
+                function prevSlide() {
+                    goToSlide(currentSlide - 1);
+                }
+
+                function startInterval() {
+                    slideInterval = setInterval(nextSlide, 5000);
+                }
+
+                function resetInterval() {
+                    clearInterval(slideInterval);
+                    startInterval();
+                }
+
+                // Event Listeners
+                nextBtn.addEventListener('click', () => {
+                    nextSlide();
+                    resetInterval();
+                });
+
+                prevBtn.addEventListener('click', () => {
+                    prevSlide();
+                    resetInterval();
+                });
+
+                // Initialize Slider
+                createDots();
+                goToSlide(0);
+                startInterval();
+            }
+        });
+    </script>
+</body>
+</html>
